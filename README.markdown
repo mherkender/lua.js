@@ -7,7 +7,7 @@ Still, through this project I haven't found much about Lua that can't be impleme
 Usage
 =====
 
-PYTHONPATH=ply python lua2js.py < input.lua > output.js
+`PYTHONPATH=ply python lua2js.py < input.lua > output.js`
 
 (you can skip the PYTHONPATH=ply part if you have ply installed)
 
@@ -58,4 +58,4 @@ Some implementation details
 *   Lua functions in Javascript always return arrays. This is to support the multiple return values that Lua uses.
 *   Tables are normal objects with keys (str, ints, bool, metatable) for various properties of that table, and to seperate things like the number keys and the string keys, since in Javascript a number is converted to a string when used as a key for an object.
 *   The `ints` key in an object can be an array or an object, depending on how it is used. If `table.insert` is used for example, then it will be converted to an array if it is not already one. This is why there's problems mixing integers an non-integers in a single table, the keys can be lost in the transition. Non-integers should be seperated to their own section, but there's a performance penalty in doing so.
-*   To force an ints object to be one thing or another, use `ensure_arraymode()` or `ensure_notarraymode()` to force a conversion if necessary.
+*   To force an ints object to be one thing or another, use `ensure_arraymode()` or `ensure_notarraymode()` to force a conversion.
