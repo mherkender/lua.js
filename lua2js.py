@@ -124,7 +124,16 @@ class LuaYacc(object):
       "  var _tmp;\n" \
       "  var _G = lua_newtable(null, 'arg', lua_newtable());\n" \
       "  _G.str['_G'] = _G;\n" \
-      "  for (var i in lua_core) {if (typeof lua_core[i] == 'object') {_G.str[i] = lua_newtable();for (var j in lua_core[i]) _G.str[i].str[j] = lua_core[i][j];} else _G.str[i] = lua_core[i];}\n" \
+      "  for (var i in lua_core) {\n" \
+      "    if (typeof lua_core[i] == 'object') {\n" \
+      "      _G.str[i] = lua_newtable();\n" \
+      "      for (var j in lua_core[i]) {\n" \
+      "        _G.str[i].str[j] = lua_core[i][j];\n" \
+      "      }\n" \
+      "    } else {\n" \
+      "      _G.str[i] = lua_core[i];\n" \
+      "    }\n" \
+      "  }\n" \
       "%s\n" \
       "  return _G;\n" \
       "})();\n" % t[3]
