@@ -79,7 +79,7 @@
 script
   : indent chunk unindent EOF {
     return "var lua_script = (function () {\n" +
-      "  var _tmp;\n" +
+      "  var tmp;\n" +
       "  var _G = lua_newtable(null, 'arg', lua_newtable());\n" +
       "  _G.str['_G'] = _G;\n" +
       "  for (var i in lua_core) {\n" +
@@ -169,7 +169,7 @@ statlist
 stat
   : varlist "=" explist {
     if ($1.length == 1) {
-      // avoid _tmp entirely for certain situations
+      // avoid tmp entirely for certain situations
       if ($3.exps.length == 1) {
         if ($1[0].access) {
           $$ = "lua_tableset(" + $1[0].prefixexp + ", " + $1[0].access + ", " + $3.exps[0] + ");";
@@ -184,31 +184,31 @@ stat
         }
       }
     } else {
-      $$ = "_tmp = " + getTempDecl($3) + "; ";
+      $$ = "tmp = " + getTempDecl($3) + "; ";
       for (var i = 0; i < $1.length; i++) {
         if ($1[i].access) {
-          $$ += "lua_tableset(" + $1[i].prefixexp + ", " + $1[i].access + ", _tmp[" + i + "]); ";
+          $$ += "lua_tableset(" + $1[i].prefixexp + ", " + $1[i].access + ", tmp[" + i + "]); ";
         } else {
-          $$ += $1[i].prefixexp + " = _tmp[" + i + "]; ";
+          $$ += $1[i].prefixexp + " = tmp[" + i + "]; ";
         }
       }
-      $$ += "_tmp = null;";
+      $$ += "tmp = null;";
     }
   }
   | LOCAL namelist "=" explist {
     if ($2.length == 1) {
-      // avoid _tmp entirely for certain situations
+      // avoid tmp entirely for certain situations
       if ($4.exps.length == 1) {
         $$ = "var " + $2[0] + " = " + $4.exps[0] + ";";
       } else {
         $$ = "var " + $2[0] + " = " + getTempDecl($4) + "[0];";
       }
     } else {
-      $$ = "_tmp = " + getTempDecl($4) + "; ";
+      $$ = "tmp = " + getTempDecl($4) + "; ";
       for (var i = 0; i < $2.length; i++) {
-        $$ += "var " + $2[i] + " = _tmp[" + i + "]; ";
+        $$ += "var " + $2[i] + " = tmp[" + i + "]; ";
       }
-      $$ += "_tmp = null;";
+      $$ += "tmp = null;";
     }
   }
   | LOCAL namelist { $$ = "var " + $2.join(", ") + ";"; }
@@ -240,11 +240,11 @@ stat
       "}";
   }
   | FOR indent namelist IN explist DO block unindent END {
-    $$ = "_tmp = " + getTempDecl($5) + "; " +
-      "var f_" + $2 + " = _tmp[0], " +
-      "s_" + $2 + " = _tmp[1], " +
-      "var_" + $2 + " = _tmp[2]; " +
-      "_tmp = null;\n" +
+    $$ = "tmp = " + getTempDecl($5) + "; " +
+      "var f_" + $2 + " = tmp[0], " +
+      "s_" + $2 + " = tmp[1], " +
+      "var_" + $2 + " = tmp[2]; " +
+      "tmp = null;\n" +
       "var " + $3.join(", ") + ";\n";
 
     if ($3.length == 1) {
@@ -252,11 +252,11 @@ stat
         $7 + "\n" +
         "}";
     } else {
-      $$ += "while ((_tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n";
+      $$ += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n";
       for (var i = 0; i < $3.length; i++) {
-        $$ += "  " + $3[i] + " = _tmp[" + i + "];\n";
+        $$ += "  " + $3[i] + " = tmp[" + i + "];\n";
       }
-      $$ += "  _tmp = null;\n" +
+      $$ += "  tmp = null;\n" +
         $7 + "\n" +
         "}";
     }
@@ -267,14 +267,14 @@ stat
       $$ += ".str['" + $2[i] + "']";
     }
     $$ += " = (function (" + $4.args.join(", ") + ") {\n" +
-      "  var _tmp;\n" +
+      "  var tmp;\n" +
       $4.body + "\n" +
       "  return [];\n" +
       "});";
   }
   | LOCAL FUNCTION NAME indent funcbody unindent {
     $$ = "var " + getLocal($3) + " = (function (" + $5.args.join(", ") + ") {\n" +
-      "  var _tmp;\n" +
+      "  var tmp;\n" +
       $5.body + "\n" +
       "  return [];\n" +
       "}";
@@ -342,7 +342,7 @@ exp
   | prefixexp { $$ = $1; }
   | FUNCTION indent funcbody unindent {
     $$ = {single: "(function (" + $3.args.join(", ") + ") {\n" +
-      "  var _tmp;\n"+
+      "  var tmp;\n"+
       $3.body + "\n"+
       "  return [];\n" +
       "})"};
