@@ -77,6 +77,13 @@ function lua_and(op1, op2) {
 function lua_or(op1, op2) {
   return op1 != null && op1 !== false ? op1 : op2();
 }
+function lua_assertfloat(n) {
+  var result = parseFloat(n);
+  if (isNaN(result)) {
+    throw new Error("Invalid number: " + n);
+  }
+  return result;
+}
 function lua_newtable(autoIndexList) {
   var result = {str: {}, ints: {}, bool: {}};
   for (var i = 1; i < arguments.length - 1; i += 2) {

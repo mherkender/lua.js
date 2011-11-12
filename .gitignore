@@ -1,1 +1,4 @@
 *.pyc
+.*
+/src/lua_parser.js
+/lua2js
