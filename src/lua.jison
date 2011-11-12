@@ -3,6 +3,8 @@
 %%
 
 \s+                     /* skip whitespace */
+"--[["(.|\n|\r)*?"]]--" /* skip multiline comment */
+"--".*                  /* skip comment */
 "0x"[0-9a-fA-f]+        return 'NUMBER';
 \d+(\.\d*)?([eE]-?\d+)? return 'NUMBER';
 "\""([^\n]|(\.))*?"\""  return 'STRING';

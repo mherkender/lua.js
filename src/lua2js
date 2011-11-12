@@ -26,9 +26,16 @@ console.log(parser.parse(
 "for i=0,10 do x() end \n" +
 "for i=0,10,2 do x() end \n" +
 "function x() end \n" +
+"function x.y() end \n" +
 "function x() return 1 end \n" +
 "function x() return 1, 2, 3 end \n" +
 "function x() return 1, 2, y() end \n" +
+"local function x() end \n" +
+"local function x() end \n" +
 "for i in x() do y() end \n" +
-"for i,j,k in x() do y() end \n"
+"for i,j,k in x() do y() end \n" +
+"-- comment \n" +
+"--[[ comment \n comment ]]-- \n" +
+"--[[ comment \r comment ]]-- \n" +
+"if x() then y = z end \n"
 ));
