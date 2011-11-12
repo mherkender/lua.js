@@ -6,7 +6,7 @@
 "--[["(.|\n|\r)*?"]]--" /* skip multiline comment */
 "--".*                  /* skip comment */
 "0x"[0-9a-fA-f]+        return 'NUMBER';
-\d+(\.\d*)?([eE]-?\d+)? return 'NUMBER';
+\d+(\.\d*)?([eE]"-"?\d+)? return 'NUMBER';
 "\""([^\n]|(\.))*?"\""  return 'STRING';
 "'"([^\n]|(\.))*?"'"    return 'STRING';
 ":"                     return ':';
@@ -17,24 +17,24 @@
 "]"                     return ']';
 "{"                     return '{';
 "}"                     return '}';
-"."                     return '.';
 "+"                     return '+';
 "-"                     return '-';
 "*"                     return '*';
 "/"                     return '/';
 "%"                     return '%';
 "^"                     return '^';
-"="                     return '=';
 "=="                    return '==';
+"="                     return '=';
 "~="                    return '~=';
-"<"                     return '<';
 "<="                    return '<=';
-">"                     return '>';
 ">="                    return '>=';
-".."                    return '..';
+"<"                     return '<';
+">"                     return '>';
 "#"                     return '#';
 ","                     return ',';
 "..."                   return '...';
+".."                    return '..';
+"."                     return '.';
 "not"                   return 'NOT';
 "and"                   return 'AND';
 "or"                    return 'OR';
@@ -272,6 +272,17 @@ stat
       "  return [];\n" +
       "});";
   }
+  | FUNCTION funcname ":" NAME indent mfuncbody unindent {
+    $$ = "_G";
+    for (var i = 0; i < $2.length; i++) {
+      $$ += ".str['" + $2[i] + "']";
+    }
+    $$ += ".str['" + $4 + "'] = (function (" + $6.args.join(", ") + ") {\n" +
+      "  var tmp;\n" +
+      $6.body + "\n" +
+      "  return [];\n" +
+      "});";
+  }
   | LOCAL FUNCTION NAME indent funcbody unindent {
     $$ = "var " + getLocal($3) + " = (function (" + $5.args.join(", ") + ") {\n" +
       "  var tmp;\n" +
@@ -324,7 +335,7 @@ namelist
 
 arglist
   : arglist "," NAME { $$ = $1.concat([setLocal($3, "_" + $3)]); }
-  | NAME { $$ = [setLocal($3, "_" + $3)]; }
+  | NAME { $$ = [setLocal($1, "_" + $1)]; }
   ;
 
 funcname
@@ -371,16 +382,7 @@ exp
 tableconstructor
   : "{" "}" { $$ = "lua_newtable()"; }
   | "{" fieldlist fieldsepend "}" {
-    if ($2.indexvals.endmulti) {
-      if ($2.indexvals.length > 1) {
-        $$ = "lua_newtable([" + $2.indexvals.slice(0, -1).join(", ") + "].concat(" + $2.indexvals.endmulti + ")";
-      } else {
-        $$ = "lua_newtable(" + $2.indexvals.endmulti;
-      }
-    } else {
-      $$ = "lua_newtable([" + $2.indexvals.join(", ") + "]";
-    }
-
+    $$ = "lua_newtable(" + getTempDecl($2);
     if ($2.keyed) {
       for (var i in $2.keyed) {
         $$ += ", " + $2.keyed[i][0] + ", " + $2.keyed[i][1];
@@ -432,17 +434,23 @@ args
   ;
 
 fieldlist
-  : fieldlist fieldsep exp { $$ = {keyed: $1.keyed, indexvals: $1.indexvals.concat([$3.single]), endmulti: $3.endmulti}; }
-  | fieldlist fieldsep NAME "=" exp { $$ = {keyed: $1.keyed.concat([["'" + $3 + "'", $5.single]]), indexvals: $1.indexvals}; }
-  | fieldlist fieldsep "[" exp "]" "=" exp { $$ = {keyed: $1.keyed.concat([[$4.single, $7.single]]), indexvals: $1.indexvals}; }
-  | exp { $$ = {keyed: [], indexvals: [$1.single], endmulti: $1.endmulti}; }
-  | NAME "=" exp { $$ = {keyed: [["'" + $1 + "'", $3.single]], indexvals: []}; }
-  | "[" exp "]" "=" exp { $$ = {keyed: [[$2.single, $5.single]], indexvals: []}; }
+  : fieldlist fieldsep exp { $$ = {keyed: $1.keyed, exps: $1.exps.concat([$3.single]), endmulti: $3.multi}; }
+  | fieldlist fieldsep NAME "=" exp { $$ = {keyed: $1.keyed.concat([["'" + $3 + "'", $5.single]]), exps: $1.exps}; }
+  | fieldlist fieldsep "[" exp "]" "=" exp { $$ = {keyed: $1.keyed.concat([[$4.single, $7.single]]), exps: $1.exps}; }
+  | exp { $$ = {keyed: [], exps: [$1.single], endmulti: $1.endmulti}; }
+  | NAME "=" exp { $$ = {keyed: [["'" + $1 + "'", $3.single]], exps: []}; }
+  | "[" exp "]" "=" exp { $$ = {keyed: [[$2.single, $5.single]], exps: []}; }
   ;
 
 fieldsep
   : ";" { }
   | "," { }
+  ;
+
+fieldsepend
+  : ";" { }
+  | "," { }
+  | {}
   ;
 
 %%

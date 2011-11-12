@@ -37,5 +37,17 @@ console.log(parser.parse(
 "-- comment \n" +
 "--[[ comment \n comment ]]-- \n" +
 "--[[ comment \r comment ]]-- \n" +
-"if x() then y = z end \n"
+"local y = 1 + 2 \n" +
+"local y = 1 == 2 \n" +
+"if x() then y = z end \n" +
+"if x() == 1 then end \n" +
+"local y = {} \n" +
+"local y = {a=1} \n" +
+"local y = {[2]=1} \n" +
+"local y = {1} \n" +
+"local y = {1, 2} \n" +
+"local y = {1, 2, x()} \n" +
+"local y = {1, 2, x(), y()} \n" +
+"local y = \"x\" .. \"y\" \n" +
+"local y = 1 + -1 + 1e10 + 1e-10 + 0x1 \n"
 ));
