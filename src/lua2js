@@ -1,53 +1,14 @@
 #!/usr/bin/env node
-
+var fs = require("fs");
 var parser = require("./src/lua_parser").parser;
 
-console.log(parser.parse(
-"a = 0 \n" +
-"x() \n" +
-"a = 1, 2 \n" +
-"a = x() \n" +
-"a = 1, x() \n" +
-"a, b, c = 1, 2, 3 \n" +
-"a, b, c = x() \n" +
-"a, b, c = 1, x() \n" +
-"a, b, c = 1, (x()) \n" +
-"local a = 0 \n" +
-"local a = 1, 2 \n" +
-"local a = x() \n" +
-"local a, b, c = 1, 2, 3 \n" +
-"local a, b = 1, 2, 3 \n" +
-"local a, b, c = x() \n" +
-"local a, b, c = 1, x() \n" +
-"if 1 then x() end \n" +
-"if 1 then x() else y() end \n" +
-"if 1 then x() elseif 2 then y() end \n" +
-"if 1 then x() elseif 2 then y() else z() end \n" +
-"for i=0,10 do x() end \n" +
-"for i=0,10,2 do x() end \n" +
-"function x() end \n" +
-"function x.y() end \n" +
-"function x() return 1 end \n" +
-"function x() return 1, 2, 3 end \n" +
-"function x() return 1, 2, y() end \n" +
-"local function x() end \n" +
-"local function x() end \n" +
-"for i in x() do y() end \n" +
-"for i,j,k in x() do y() end \n" +
-"-- comment \n" +
-"--[[ comment \n comment ]]-- \n" +
-"--[[ comment \r comment ]]-- \n" +
-"local y = 1 + 2 \n" +
-"local y = 1 == 2 \n" +
-"if x() then y = z end \n" +
-"if x() == 1 then end \n" +
-"local y = {} \n" +
-"local y = {a=1} \n" +
-"local y = {[2]=1} \n" +
-"local y = {1} \n" +
-"local y = {1, 2} \n" +
-"local y = {1, 2, x()} \n" +
-"local y = {1, 2, x(), y()} \n" +
-"local y = \"x\" .. \"y\" \n" +
-"local y = 1 + -1 + 1e10 + 1e-10 + 0x1 \n"
-));
+if (process.argv.length != 4) {
+  console.log("Usage: lua2js <input.lua> <output.js>");
+  process.exit(1);
+}
+
+fs.writeFile(process.argv[3], parser.parse(fs.readFileSync(process.argv[2], 'utf8')), function (err) {
+  if (err) {
+    throw err;
+  }
+});
