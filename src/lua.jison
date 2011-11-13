@@ -78,7 +78,7 @@
 
 script
   : indent chunk unindent EOF {
-    return "var lua_script = (function () {\n" +
+    return "(function () {\n" +
       "  var tmp;\n" +
       "  var _G = lua_newtable(null, 'arg', lua_newtable());\n" +
       "  _G.str['_G'] = _G;\n" +
@@ -92,6 +92,18 @@ script
       "      _G.str[i] = lua_core[i];\n" +
       "    }\n" +
       "  }\n" +
+      "  _G.str['module'] = function (name) {\n" +
+      "    lua_createmodule(_G, name, slice(arguments, 1));\n" +
+      "  };\n" +
+      "  _G.str['require'] = function (name) {\n" +
+      "    lua_module(_G, name);\n" +
+      "  };\n" +
+      "  _G.str['package'].str['seeall'] = function (module) {\n" +
+      "    if (!module.metatable) {\n" +
+      "      module.metatable = lua_newtable();\n" +
+      "    }\n" +
+      "    module.metatable.str['__index'] = _G;\n" +
+      "  };\n" +
       $2 + "\n" +
       "  return _G;\n" +
       "})();\n";

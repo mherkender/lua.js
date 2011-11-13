@@ -779,13 +779,44 @@ lua_core["os"]["time"] = function () {
 };
 
 // package
+var lua_packages = lua_newtable();
+function lua_createmodule(G, name, options) {
+  var t = lua_tableget(lua_packages, name) || lua_tableget(G, name) || lua_newtable();
+  lua_tableset(G, name, t);
+  lua_tableset(lua_packages, name, t);
+  lua_tableset(t, "_NAME", name);
+  lua_tableset(t, "_M", t);
+  lua_tableset(t, "_PACKAGE", name.split(".").slice(0, -1).join("."));
+
+  for (var i = 0; i < options.length; i++) {
+    lua_call(options[i], [t]);
+  }
+  return t;
+}
+function lua_module(G, name) {
+  var t = lua_tableget(lua_packages, name);
+  if (t == null) {
+    throw new Error("Module " + name + " not found. Module must be loaded before use.");
+  }
+  var pkg = G;
+  var names = name.split(".");
+  for (var i = 0; i < names.length - 1; i++) {
+    if (!lua_tableget(pkg, names[i])) {
+      var newPkg = lua_newtable();
+      lua_tableset(pkg, names[i], newPkg);
+      pkg = newPkg;
+    }
+  }
+  lua_tableset(pkg, names[names.length - 1], t);
+  return t;
+}
 lua_core["package"] = {};
 lua_core["package"]["path"] = "";
 lua_core["package"]["cpath"] = "";
-lua_core["package"]["loaded"] = {};
-lua_core["package"]["loaders"] = {};// TODO
-lua_core["package"]["preload"] = {};
-lua_core["package"]["seeall"] = lua_core["package"]["loadlib"] = function () {
+lua_core["package"]["loaded"] = lua_packages;
+lua_core["package"]["loaders"] = lua_newtable();// not used
+lua_core["package"]["preload"] = lua_newtable();// not used
+lua_core["package"]["loadlib"] = function () {
   not_supported();
 };
 
