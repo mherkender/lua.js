@@ -463,8 +463,8 @@ functioncall
   ;
 
 args
-  : "(" explist ")" { $$ = $2 }
-  | "(" ")" { $$ = {exps: [] } }
+  : "(" explist ")" { $$ = $2; }
+  | "(" ")" { $$ = {exps: []}; }
   ;
 
 fieldlist
