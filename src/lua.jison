@@ -453,15 +453,11 @@ var
 
 functioncall
   : prefixexp args {
-      $$ = "lua_call(" + $1.single + ", [";
-      for (var i = 0; i < $2.exps.length; i++) {
-        $$ += (i !== 0 ? ", " : "") + $2.exps[i];
-      }
-      $$ += "])";
-    } 
+    $$ = "lua_call(" + $1.single + ", " + getTempDecl($2) + ")";
+  } 
   | prefixexp STRING { $$ = "lua_call(" + $1.single + ", [" + $2 + "])"; }
   | prefixexp tableconstructor { $$ = "lua_call(" + $1.single + ", [" + $2 + "])"; }
-  | prefixexp ":" NAME args { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', [" + $4.exps.join(", ") + "])"; }
+  | prefixexp ":" NAME args { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', [" + getTempDecl($4) + "])"; }
   | prefixexp ":" NAME STRING { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', [" + $4 + "])"; }
   | prefixexp ":" NAME tableconstructor { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', [" + $4 + "])"; }
   ;
