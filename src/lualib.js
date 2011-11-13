@@ -14,9 +14,6 @@
    limitations under the License.
 */
 
-// get past a type issue in as3 in some situations
-var parseFloat2 = parseFloat;
-
 // slice that works in as3 and js on arguments
 function slice(arr, start) {
   if (arr.slice) {
