@@ -2,3 +2,5 @@
 .*
 /src/lua_parser.js
 /lua2js
+/lua.as
+/lua.js

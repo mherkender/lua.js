@@ -17,14 +17,6 @@
 // get past a type issue in as3 in some situations
 var parseFloat2 = parseFloat;
 
-var print = window.console ? function () {
-  try {
-    console.log.apply(console, arguments);
-  } catch (e) {
-    // do nothing
-  }
-} : (trace ? trace : function () {});
-
 // slice that works in as3 and js on arguments
 function slice(arr, start) {
   if (arr.slice) {
@@ -513,10 +505,7 @@ lua_core["pcall"] = function (func) {
     return [false, e.message];
   }
 };
-lua_core["print"] = function () {
-  print(slice(arguments).join("\t"));
-  return [];
-};
+lua_core["print"] = lua_print;
 lua_core["rawequal"] = function () {
   not_supported();
 };
@@ -1038,9 +1027,4 @@ lua_core["bit"]["bswap"] = function (x) {
   x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
   x = (x >> 16) | (x << 16);
   return [x];
-}
-
-lua_core["js"] = {};
-lua_core["js"]["log"] = function () {
-  print.apply(null, arguments);
 }

@@ -1,11 +1,18 @@
 # ex:noexpandtab:softtabstop=0
 
-all: lua2js
+all: lua2js lua.js lua.as
 
 lua2js: src/lua2js src/lua_parser.js
 	cp $< $@
 
 src/lua_parser.js: src/build_lua_parser.js src/lua.jison $(shell find jison)
-	node $<
+	pwd
+	cd . && node $<
+
+lua.js: src/lua_header.js src/lualib.js
+	cat $^ > $@
+
+lua.as: src/lua_header.as src/lualib.js
+	cat $^ > $@
 
 .PHONY: all

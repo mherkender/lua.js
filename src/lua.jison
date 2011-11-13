@@ -1,3 +1,19 @@
+/*
+   Copyright 2011 Maximilian Herkender
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 %lex
 
 %%
@@ -78,7 +94,7 @@
 
 script
   : indent chunk unindent EOF {
-    return "(function () {\n" +
+    return "var lua_script = (function () {\n" +
       "  var tmp;\n" +
       "  var _G = lua_newtable(null, 'arg', lua_newtable());\n" +
       "  _G.str['_G'] = _G;\n" +
@@ -264,7 +280,8 @@ stat
         $7 + "\n" +
         "}";
     } else {
-      $$ += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n";
+      $$ += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n" +
+        "  var_" + $2 + " = tmp[0];\n";
       for (var i = 0; i < $3.length; i++) {
         $$ += "  " + $3[i] + " = tmp[" + i + "];\n";
       }
@@ -300,7 +317,7 @@ stat
       "  var tmp;\n" +
       $5.body + "\n" +
       "  return [];\n" +
-      "}";
+      "});";
   }
   ;
 
@@ -331,7 +348,7 @@ elseif
   ;
 
 varlist
-  : var "," varlist { $$ = $3.concat([$3]); }
+  : var "," varlist { $$ = [$1].concat($3); }
   | var { $$ = [$1]; }
   ;
 
@@ -378,15 +395,15 @@ exp
   | exp "%" exp { $$ = {single: 'lua_mod(' + $1.single + ', ' + $3.single + ')'}; }
   | exp ".." exp { $$ = {single: 'lua_concat(' + $1.single + ', ' + $3.single + ')'}; }
   | exp "<" exp { $$ = {single: 'lua_lt(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp ">" exp { $$ = {single: 'lua_gt(' + $1.single + ', ' + $3.single + ')'}; }
+  | exp ">" exp { $$ = {single: 'lua_lt(' + $3.single + ', ' + $1.single + ')'}; }
   | exp "<=" exp { $$ = {single: 'lua_lte(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp ">=" exp { $$ = {single: 'lua_gte(' + $1.single + ', ' + $3.single + ')'}; }
+  | exp ">=" exp { $$ = {single: 'lua_lte(' + $3.single + ', ' + $1.single + ')'}; }
   | exp "==" exp { $$ = {single: 'lua_eq(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "~=" exp { $$ = {single: 'lua_neq(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp AND exp { $$ = {single: 'lua_and(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp OR exp { $$ = {single: 'lua_or(' + $1.single + ', ' + $3.single + ')'}; }
+  | exp "~=" exp { $$ = {single: '!lua_eq(' + $1.single + ', ' + $3.single + ')'}; }
+  | exp AND exp { $$ = {single: 'lua_and(' + $1.single + ', function () {return ' + $3.single + ';})'}; }
+  | exp OR exp { $$ = {single: 'lua_or(' + $1.single + ', function () {return ' + $3.single + ';})'}; }
   | "-" exp { $$ = {single: 'lua_unm(' + $2.single + ')'}; }
-  | NOT exp { $$ = {single: 'lua_not(' + $2 + ')'}; }
+  | NOT exp { $$ = {single: 'lua_not(' + $2.single + ')'}; }
   | "#" exp { $$ = {single: 'lua_len(' + $2.single + ')'}; }
   | "..." { throw new Error('varargs not supported'); }
   ;
@@ -412,7 +429,7 @@ funcbody
   ;
 
 mfuncbody
-  : addself funcbody { $$ = {args: [setLocal("self")].concat($2.args), body: $2.body} }
+  : addself funcbody { $$ = {args: [setLocal("self", "self")].concat($2.args), body: $2.body} }
   ;
 
 addself
@@ -421,7 +438,7 @@ addself
 
 var
   : NAME { $$ = {prefixexp: getLocal($1, "_G.str['" + $1 + "']")}; }
-  | prefixexp "[" exp "]" { $$ = {prefixexp: $1.single, access: $3}; }
+  | prefixexp "[" exp "]" { $$ = {prefixexp: $1.single, access: $3.single}; }
   | prefixexp "." NAME { $$ = {prefixexp: $1.single, access: "'" + $3 + "'"}; }
   ;
 

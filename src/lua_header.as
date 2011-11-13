@@ -14,10 +14,11 @@
    limitations under the License.
 */
 
-// So lua.js can try to detect window.console without an error
-var window = {};
+var lua_print = function () {
+  trace(slice(arguments).join("\t"));
+  return [];
+};
 
 // so metatable accesses in lua don't anger Flash
 String.prototype.metatable = Number.prototype.metatable = Boolean.prototype.metatable = null;
 
-include "lua.js";
