@@ -30,27 +30,31 @@ function not_supported() {
 
 function ensure_arraymode(table) {
   if (!table.arraymode) {
-    var newints = [];
-    for (var i in table.ints) {
-      if (table.ints[i] != null) {
-        newints[i] = table.ints[i];
+    var newuints = [];
+    for (var i in table.uints) {
+      if (table.uints[i] != null) {
+        newuints[i - 1] = table.uints[i];
       }
     }
-    table.ints = newints;
+    table.uints = newuints;
     table.arraymode = true;
   }
 }
 function ensure_notarraymode(table) {
   if (table.arraymode) {
-    var newints = {};
-    for (var i in table.ints) {
-      if (table.ints[i] != null) {
-        newints[i] = table.ints[i];
+    var newuints = {};
+    for (var i in table.uints) {
+      if (table.uints[i] != null) {
+        newuints[i + 1] = table.uints[i];
       }
     }
-    table.ints = newints;
+    table.uints = newuints;
     delete table.arraymode;
   }
+}
+
+function lua_isuint(n) {
+  return n && (n & 0x7fffffff) == n;
 }
 
 // methods used by generated lua code
@@ -74,14 +78,18 @@ function lua_assertfloat(n) {
   return result;
 }
 function lua_newtable(autoIndexList) {
-  var result = {str: {}, ints: {}, bool: {}};
+  var result = {str: {}, uints: {}, floats: {}, bool: {}};
   for (var i = 1; i < arguments.length - 1; i += 2) {
     switch (typeof arguments[i]) {
       case "string":
         result.str[arguments[i]] = arguments[i + 1];
         break;
       case "number":
-        result.ints[arguments[i]] = arguments[i + 1];
+        if (lua_isuint(arguments[i])) {
+          result.uints[arguments[i]] = arguments[i + 1];
+        } else {
+          result.floats[arguments[i]] = arguments[i + 1];
+        }
         break;
       case "boolean":
         result.bool[arguments[i]] = arguments[i + 1];
@@ -92,12 +100,12 @@ function lua_newtable(autoIndexList) {
   }
   if (autoIndexList) {
     ensure_arraymode(result);
-    if (result.ints.length == 0) {
-      result.ints = autoIndexList;
+    if (result.uints.length == 0) {
+      result.uints = autoIndexList;
     } else {
       i = autoIndexList.length;
       while (i-- > 0) {
-        result.ints[i] = autoIndexList[i];
+        result.uints[i] = autoIndexList[i];
       }
     }
   }
@@ -110,10 +118,10 @@ function lua_len(op) {
     if (op.length == null) {
       var index = 0;
       if (op.arraymode) {
-        while (op.ints[index++] != null) {};
+        while (op.uints[index++] != null) {};
         return [op.length = index - 1];
       } else {
-        while (op.ints[++index] != null) {};
+        while (op.uints[++index] != null) {};
         return [op.length = index - 1];
       }
     } else {
@@ -306,10 +314,14 @@ function lua_rawget(table, key) {
     case "string":
       return table.str[key];
     case "number":
-      if (table.arraymode) {
-        return table.ints[key - 1];
+      if (lua_isuint(key)) {
+        if (table.arraymode) {
+          return table.uints[key - 1];
+        } else {
+          return table.uints[key];
+        }
       } else {
-        return table.ints[key];
+        return table.floats[key];
       }
     case "boolean":
       return table.bool[key];
@@ -328,11 +340,19 @@ function lua_rawset(table, key, value) {
       }
       break;
     case "number":
-      ensure_notarraymode(table);
-      if (value == null) {
-        delete table.ints[key];
+      if (lua_isuint(key)) {
+        ensure_notarraymode(table);
+        if (value == null) {
+          delete table.uints[key];
+        } else {
+          table.uints[key] = value;
+        }
       } else {
-        table.ints[key] = value;
+        if (value == null) {
+          delete table.floats[key];
+        } else {
+          table.floats[key] = value;
+        }
       }
       break;
     case "boolean":
@@ -439,9 +459,9 @@ lua_core["getmetatable"] = function () {
 function _ipairs_next(table, index) {
   var entry;
   if (table.arraymode) {
-    entry = table.ints[index];
+    entry = table.uints[index];
   } else {
-    entry = table.ints[index + 1];
+    entry = table.uints[index + 1];
   }
   if (entry == null) {
     return [null, null];
@@ -466,14 +486,17 @@ lua_core["pairs"] = function (table) {
     props.push(i);
   }
   if (table.arraymode) {
-    var j = table.ints.length;
+    var j = table.uints.length;
     while (j-- > 0) {
       props.push(j + 1);
     }
   } else {
-    for (i in table.ints) {
+    for (i in table.uints) {
       props.push(parseFloat(i));
     }
+  }
+  for (i in table.floats) {
+    props.push(parseFloat(i));
   }
   for (i in table.bools) {
     props.push(i === "true" ? true : false);
@@ -907,9 +930,9 @@ lua_core["table"]["insert"] = function (table, pos, value) {
   ensure_arraymode(table);
   if (arguments.length == 2) {
     value = pos;
-    pos = table.ints.length + 1;
+    pos = table.uints.length + 1;
   }
-  table.ints.splice(pos - 1, 0, value);
+  table.uints.splice(pos - 1, 0, value);
   if (table.length != null) {
     table.length++;
   }
@@ -917,10 +940,10 @@ lua_core["table"]["insert"] = function (table, pos, value) {
 };
 lua_core["table"]["maxn"] = function (table) {
   if (table.arraymode) {
-    return [table.ints.length];
+    return [table.uints.length];
   } else {
     var max = 0;
-    for (var i in table.ints) {
+    for (var i in table.uints) {
       var val = parseFloat(i);
       if (val > max) {
         max = val;
@@ -932,8 +955,8 @@ lua_core["table"]["maxn"] = function (table) {
 // TODO: This will probably mess up if pos is not valid
 lua_core["table"]["remove"] = function (table, pos) {
   ensure_arraymode(table);
-  var value = table.ints[pos - 1];
-  table.ints.splice(pos - 1, 1);
+  var value = table.uints[pos - 1];
+  table.uints.splice(pos - 1, 1);
   if (table.length != null) {
     table.length--;
   }
@@ -947,7 +970,7 @@ lua_core["table"]["sort"] = function (table, comp) {
     comp = _defaultsort;
   }
   ensure_arraymode(table)
-  table.ints.sort(function (a, b) {
+  table.uints.sort(function (a, b) {
     return comp(a, b)[0] ? -1 : 1;
   });
   return [];
