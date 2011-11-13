@@ -167,10 +167,6 @@ chunk
   }
   ;
 
-varargchunk
-  : chunk { throw new Error("varargs not supported"); }
-  ;
-
 prefixexp
   : var {
     if ($1.access) {
@@ -296,8 +292,11 @@ stat
       $$ += ".str['" + $2[i] + "']";
     }
     $$ += " = (function (" + $4.args.join(", ") + ") {\n" +
-      "  var tmp;\n" +
-      $4.body + "\n" +
+      "  var tmp;\n";
+    if ($4.hasVarargs) {
+      $$ += "  var varargs = lua_newtable(slice(arguments, " + $4.args.length + "));\n";
+    }
+    $$ += $4.body + "\n" +
       "  return [];\n" +
       "});";
   }
@@ -307,15 +306,21 @@ stat
       $$ += ".str['" + $2[i] + "']";
     }
     $$ += ".str['" + $4 + "'] = (function (" + $6.args.join(", ") + ") {\n" +
-      "  var tmp;\n" +
-      $6.body + "\n" +
+      "  var tmp;\n";
+    if ($6.hasVarargs) {
+      $$ += "  var varargs = lua_newtable(slice(arguments, " + $6.args.length + "));\n";
+    }
+    $$ += $6.body + "\n" +
       "  return [];\n" +
       "});";
   }
   | LOCAL FUNCTION NAME indent funcbody unindent {
     $$ = "var " + getLocal($3) + " = (function (" + $5.args.join(", ") + ") {\n" +
-      "  var tmp;\n" +
-      $5.body + "\n" +
+      "  var tmp;\n";
+    if ($5.hasVarargs) {
+      $$ += "  var varargs = lua_newtable(slice(arguments, " + $5.args.length + "));\n";
+    }
+    $$ += $5.body + "\n" +
       "  return [];\n" +
       "});";
   }
@@ -381,11 +386,15 @@ exp
   | NIL { $$ = {single: 'null'}; }
   | prefixexp { $$ = $1; }
   | FUNCTION indent funcbody unindent {
-    $$ = {single: "(function (" + $3.args.join(", ") + ") {\n" +
-      "  var tmp;\n"+
-      $3.body + "\n"+
+    var fn = "(function (" + $3.args.join(", ") + ") {\n" +
+      "  var tmp;\n";
+    if ($3.hasVarargs) {
+      fn += "  var varargs = lua_newtable(slice(arguments, " + $3.args.length + "));\n";
+    }
+    fn += $3.body + "\n" +
       "  return [];\n" +
-      "})"};
+      "})";
+    $$ = {single: fn};
   }
   | exp "+" exp { $$ = {single: 'lua_add(' + $1.single + ', ' + $3.single + ')'}; }
   | exp "-" exp { $$ = {single: 'lua_subtract(' + $1.single + ', ' + $3.single + ')'}; }
@@ -405,7 +414,7 @@ exp
   | "-" exp { $$ = {single: 'lua_unm(' + $2.single + ')'}; }
   | NOT exp { $$ = {single: 'lua_not(' + $2.single + ')'}; }
   | "#" exp { $$ = {single: 'lua_len(' + $2.single + ')'}; }
-  | "..." { throw new Error('varargs not supported'); }
+  | "..." { $$ = {single: 'varargs[0]', multi: 'varargs'}; }
   ;
 
 tableconstructor
@@ -424,12 +433,12 @@ tableconstructor
 funcbody
   : "(" ")" chunk END { $$ = {args: [], body: $3} }
   | "(" arglist ")" chunk END { $$ = {args: $2, body: $4} }
-  | "(" "..." ")" chunk END { $$ = {args: [], body: $4} }
-  | "(" arglist "," "..." ")" chunk END { $$ = {args: $2, body: $6} }
+  | "(" "..." ")" chunk END { $$ = {args: [], body: $4, hasVarargs: true} }
+  | "(" arglist "," "..." ")" chunk END { $$ = {args: $2, body: $6, hasVarargs: true} }
   ;
 
 mfuncbody
-  : addself funcbody { $$ = {args: [setLocal("self", "self")].concat($2.args), body: $2.body} }
+  : addself funcbody { $$ = {args: [setLocal("self", "self")].concat($2.args), body: $2.body, hasVarargs: $2.hasVarargs} }
   ;
 
 addself
