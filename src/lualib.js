@@ -367,7 +367,10 @@ function lua_rawset(table, key, value) {
   }
 }
 function lua_tableget(table, key) {
-  if (typeof table == "object" && table != null) {
+  if (table == null) {
+    throw new Error("Table is null");
+  }
+  if (typeof table == "object") {
     var v = lua_rawget(table, key);
     if (v != null) {
       return v;
@@ -389,7 +392,10 @@ function lua_tableget(table, key) {
   }
 }
 function lua_tableset(table, key, value) {
-  if (typeof table == "object" && table != null) {
+  if (table == null) {
+    throw new Error("Table is null");
+  }
+  if (typeof table == "object") {
     if (key == null || (typeof key == "number" && isNaN(key))) {
       throw new Error("Key cannot be NaN or null");
     }
