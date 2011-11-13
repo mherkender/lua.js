@@ -25,6 +25,7 @@
 \d+(\.\d*)?([eE]"-"?\d+)? return 'NUMBER';
 "\""([^\n]|(\.))*?"\""  return 'STRING';
 "'"([^\n]|(\.))*?"'"    return 'STRING';
+"[["(.|\n|\r)*?"]]"     yytext = longStringToString(yytext); return 'STRING';
 ":"                     return ':';
 ";"                     return ';';
 "("                     return '(';
@@ -519,4 +520,8 @@ function getTempDecl(explist) {
   } else {
     return "[" + explist.exps.join(", ") + "]";
   }
+}
+
+function longStringToString(str) {
+  return '"' + str.substring(0, str.length - 2).replace(/^\[\[(\r\n|\r|\n)?/m, "").replace(/\n/mg, "\\n").replace(/\r/mg, "\\r").replace(/\"/mg, "\\\"") + '"';
 }
