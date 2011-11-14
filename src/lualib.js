@@ -476,7 +476,7 @@ lua_core["getfenv"] = function (func, table) {
   not_supported();
 };
 lua_core["getmetatable"] = function () {
-  not_supported();
+  return op.metatable && (op.metatable.str["__metatable"] || op.metatable);
 };
 function _ipairs_next(table, index) {
   var entry;
@@ -566,7 +566,7 @@ lua_core["pcall"] = function (func) {
 };
 lua_core["print"] = lua_print;
 lua_core["rawequal"] = function () {
-  not_supported();
+  return (op1 == op2) || (op1 == null && op2 == null);
 };
 lua_core["rawget"] = function (table, key) {
   if (typeof table == "object" && table != null && key != null) {
@@ -611,8 +611,27 @@ lua_core["tonumber"] = function (e, base) {
   }
 };
 lua_core["tostring"] = function (e) {
-  // TODO
-  not_supported();
+  if (e == null) {
+    return ["nil"];
+  }
+  var h = e.metatable && e.metatable.str["__tostring"];
+  if (h) {
+    return h(e);
+  } else {
+    switch (typeof(e)) {
+      case "number":
+      case "boolean":
+        return [e.toString()];
+      case "string":
+        return [e];
+      case "object":
+        return ["table"];
+      case "function":
+        return ["function"];
+      default:
+        return ["nil"];
+    }
+  }
 };
 lua_core["type"] = function (v) {
   switch (typeof v) {
