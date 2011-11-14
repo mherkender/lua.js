@@ -57,6 +57,19 @@ function lua_isuint(n) {
   return n && (n & 0x7fffffff) == n;
 }
 
+// NOTE: chunkname is ignored <http://i.imgur.com/SW13T.jpg>
+function lua_load(chunk, chunkname) {
+  if (!lua_parser) {
+    throw new Error("Lua parser not available, perhaps you're not using the lua+parser.* version of the library?");
+  }
+
+  eval(
+    "var fn = function " + (chunkname || "load") + "() {\n" +
+    lua_parser.parse(chunk) + "\n" +
+    "};");
+  return fn;
+}
+
 // methods used by generated lua code
 function lua_true(op) {
   return op != null && op !== false;
@@ -480,11 +493,26 @@ function _ipairs_next(table, index) {
 lua_core["ipairs"] = function (table) {
   return [_ipairs_next, table, 0];
 };
-lua_core["load"] = function () {
-  not_supported();
+lua_core["load"] = function (func, chunkname) {
+  var script = "", chunk;
+  while ((chunk = func()) != null && chunk != "") {
+    script += chunk;
+  }
+  try {
+    return [lua_load(script, chunkname)];
+  } catch (e) {
+    return [null, e.message];
+  }
 };
 lua_core["loadfile"] = function () {
   not_supported();
+};
+lua_core["loadstring"] = function (string, chunkname) {
+  try {
+    return [lua_load(string, chunkname)];
+  } catch (e) {
+    return [null, e.message];
+  }
 };
 lua_core["next"] = function () {
   not_supported();

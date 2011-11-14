@@ -95,35 +95,34 @@
 
 script
   : indent chunk unindent EOF {
-    return "var lua_script = (function () {\n" +
-      "  var tmp;\n" +
-      "  var _G = lua_newtable(null, 'arg', lua_newtable());\n" +
-      "  _G.str['_G'] = _G;\n" +
-      "  for (var i in lua_core) {\n" +
-      "    if (typeof lua_core[i] == 'object') {\n" +
-      "      _G.str[i] = lua_newtable();\n" +
-      "      for (var j in lua_core[i]) {\n" +
-      "        _G.str[i].str[j] = lua_core[i][j];\n" +
-      "      }\n" +
-      "    } else {\n" +
-      "      _G.str[i] = lua_core[i];\n" +
+    return "var tmp;\n" +
+      "var _G = lua_newtable(null, 'arg', lua_newtable());\n" +
+      "_G.str['_G'] = _G;\n" +
+      "for (var i in lua_core) {\n" +
+      "  if (typeof lua_core[i] == 'object') {\n" +
+      "    _G.str[i] = lua_newtable();\n" +
+      "    for (var j in lua_core[i]) {\n" +
+      "      _G.str[i].str[j] = lua_core[i][j];\n" +
       "    }\n" +
+      "  } else {\n" +
+      "    _G.str[i] = lua_core[i];\n" +
       "  }\n" +
-      "  _G.str['module'] = function (name) {\n" +
-      "    lua_createmodule(_G, name, slice(arguments, 1));\n" +
-      "  };\n" +
-      "  _G.str['require'] = function (name) {\n" +
-      "    lua_module(_G, name);\n" +
-      "  };\n" +
-      "  _G.str['package'].str['seeall'] = function (module) {\n" +
-      "    if (!module.metatable) {\n" +
-      "      module.metatable = lua_newtable();\n" +
-      "    }\n" +
-      "    module.metatable.str['__index'] = _G;\n" +
-      "  };\n" +
+      "}\n" +
+      "_G.str['module'] = function (name) {\n" +
+      "  lua_createmodule(_G, name, slice(arguments, 1));\n" +
+      "};\n" +
+      "_G.str['require'] = function (name) {\n" +
+      "  lua_module(_G, name);\n" +
+      "};\n" +
+      "_G.str['package'].str['seeall'] = function (module) {\n" +
+      "  if (!module.metatable) {\n" +
+      "    module.metatable = lua_newtable();\n" +
+      "  }\n" +
+      "  module.metatable.str['__index'] = _G;\n" +
+      "};\n" +
+      "{\n" +
       $2 + "\n" +
-      "  return _G;\n" +
-      "})();\n";
+      "}\n";
   }
   ;
 
@@ -164,7 +163,7 @@ chunk
     $$ = "  " + ($1 || "").split("\n").join("\n  ");
   }
   | statlist laststat {
-    $$ = "  " + (($1 || "") + "\n" + $2).split("\n").join("\n  ");
+    $$ = "  " + (($1 ? $1 + "\n" : "") + $2).split("\n").join("\n  ");
   }
   ;
 
