@@ -4,5 +4,7 @@
 /lua2js
 /lua.as
 /lua.js
+/lua.min.js
 /lua+parser.as
 /lua+parser.js
+/lua+parser.min.js
