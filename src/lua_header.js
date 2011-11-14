@@ -16,7 +16,7 @@
 
 var lua_print = function () {
   try {
-    console.log(slice(arguments).join("\t"));
+    console.log.apply(console, arguments);
   } catch (e) {
     // do nothing
   }
