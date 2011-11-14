@@ -80,6 +80,9 @@ function lua_assertfloat(n) {
 function lua_newtable(autoIndexList) {
   var result = {str: {}, uints: {}, floats: {}, bool: {}};
   for (var i = 1; i < arguments.length - 1; i += 2) {
+    if (arguments[i + 1] == null) {
+      continue;
+    }
     switch (typeof arguments[i]) {
       case "string":
         result.str[arguments[i]] = arguments[i + 1];
@@ -494,7 +497,9 @@ lua_core["pairs"] = function (table) {
   if (table.arraymode) {
     var j = table.uints.length;
     while (j-- > 0) {
-      props.push(j + 1);
+      if (table.uints[j] != null) {
+        props.push(j + 1);
+      }
     }
   } else {
     for (i in table.uints) {
@@ -520,7 +525,7 @@ lua_core["pairs"] = function (table) {
       }
       key = props[i++];
       entry = lua_rawget(table, key);
-    } while (!entry);
+    } while (entry == null);
     return [key, entry];
   }, table, null];
 };
