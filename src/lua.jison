@@ -264,15 +264,15 @@ stat
       "}";
   }
   | FOR indent namelist IN explist DO block unindent END {
-    $$ = "tmp = " + getTempDecl($5) + "; " +
+    $$ = "var " + $3.join(", ") + ";\n" +
+      "tmp = " + getTempDecl($5) + ";\n" +
       "var f_" + $2 + " = tmp[0], " +
       "s_" + $2 + " = tmp[1], " +
-      "var_" + $2 + " = tmp[2]; " +
-      "tmp = null;\n" +
-      "var " + $3.join(", ") + ";\n";
+      "var_" + $2 + " = tmp[2];\n";
 
     if ($3.length == 1) {
-      $$ += "while ((" + $3[0] + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) {\n" +
+      $$ += "tmp = null;\n" +
+        "while ((" + $3[0] + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) {\n" +
         $7 + "\n" +
         "}";
     } else {
@@ -281,9 +281,9 @@ stat
       for (var i = 0; i < $3.length; i++) {
         $$ += "  " + $3[i] + " = tmp[" + i + "];\n";
       }
-      $$ += "  tmp = null;\n" +
-        $7 + "\n" +
-        "}";
+      $$ += $7 + "\n" +
+        "}\n";
+        "tmp = null;";
     }
   }
   | FUNCTION funcname indent funcbody unindent {
