@@ -22,3 +22,17 @@ var lua_print = function () {
   }
   return [];
 };
+
+function lua_load(chunk, chunkname) {
+  if (!lua_parser) {
+    throw new Error("Lua parser not available, perhaps you're not using the lua+parser.js version of the library?");
+  }
+
+  var fn;
+  eval(
+    "fn = function " + (chunkname || "load") + "() {\n" +
+    lua_parser.parse(chunk) + "\n" +
+    "};");
+  return fn;
+}
+

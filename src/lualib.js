@@ -57,19 +57,6 @@ function lua_isuint(n) {
   return n && (n & 0x7fffffff) == n;
 }
 
-// NOTE: chunkname is ignored <http://i.imgur.com/SW13T.jpg>
-function lua_load(chunk, chunkname) {
-  if (!lua_parser) {
-    throw new Error("Lua parser not available, perhaps you're not using the lua+parser.* version of the library?");
-  }
-
-  eval(
-    "var fn = function " + (chunkname || "load") + "() {\n" +
-    lua_parser.parse(chunk) + "\n" +
-    "};");
-  return fn;
-}
-
 // methods used by generated lua code
 function lua_true(op) {
   return op != null && op !== false;

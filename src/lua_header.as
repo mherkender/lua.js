@@ -19,6 +19,10 @@ var lua_print = function () {
   return [];
 };
 
+function lua_load() {
+  throw new Error("Flash does not support runtime compilation, so you can only use precompiled Lua code in Flash");
+}
+
 // so metatable accesses in lua don't anger Flash
 String.prototype.metatable = Number.prototype.metatable = Boolean.prototype.metatable = null;
 
