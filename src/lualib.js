@@ -462,7 +462,7 @@ lua_core["error"] = function (message, level) {
 lua_core["getfenv"] = function (func, table) {
   not_supported();
 };
-lua_core["getmetatable"] = function () {
+lua_core["getmetatable"] = function (op) {
   return op.metatable && (op.metatable.str["__metatable"] || op.metatable);
 };
 function _ipairs_next(table, index) {
@@ -552,7 +552,7 @@ lua_core["pcall"] = function (func) {
   }
 };
 lua_core["print"] = lua_print;
-lua_core["rawequal"] = function () {
+lua_core["rawequal"] = function (op1, op2) {
   return (op1 == op2) || (op1 == null && op2 == null);
 };
 lua_core["rawget"] = function (table, key) {
@@ -668,7 +668,7 @@ lua_core["io"]["write"] = function () {
   lua_write_buffer += Array.prototype.join.call(arguments, "");
   var lines = lua_write_buffer.split("\n");
   while (lines.length > 1) {
-    print(lines.shift());
+    lua_print(lines.shift());
   }
   lua_write_buffer = lines[0];
   return [];
