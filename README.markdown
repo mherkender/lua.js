@@ -3,10 +3,10 @@ This project aims to convert Lua code to ECMAscript code, either using a compile
 Download
 ========
 
-*   [lua2js](http://raw.github.com/mherkender/lua.js/precompiled/lua2js) - command line tool for offline parsing
-*   [lua.min.js](http://raw.github.com/mherkender/lua.js/precompiled/lua.min.js) - lua.js library
-*   [lua+parser.min.js](http://raw.github.com/mherkender/lua.js/precompiled/lua+parser.min.js) - lua.js library w/ runtime parsing
-*   [lua.as](http://raw.github.com/mherkender/lua.js/precompiled/lua.min.js) - lua.js library for ActionScript 3.0
+*   [lua2js](https://raw.github.com/mherkender/lua.js/precompiled/lua2js) - command line tool for offline parsing
+*   [lua.min.js](https://raw.github.com/mherkender/lua.js/precompiled/lua.min.js) - lua.js library
+*   [lua+parser.min.js](https://raw.github.com/mherkender/lua.js/precompiled/lua+parser.min.js) - lua.js library w/ runtime parsing
+*   [lua.as](https://raw.github.com/mherkender/lua.js/precompiled/lua.min.js) - lua.js library for ActionScript 3.0
 
 To build these files yourself, use make in the root of the project, for example...
 
