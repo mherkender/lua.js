@@ -6,8 +6,8 @@ GENERATED_FILES=lua2js lua.js lua.as lua.min.js lua+parser.js lua+parser.min.js
 
 all: $(GENERATED_FILES)
 
-lua2js: src/lua2js src/lua_parser.js
-	cp $< $@
+lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
+	cat $^ > $@
 
 src/lua_parser.js: src/build_lua_parser.js src/lua.jison $(shell find jison)
 	pwd
