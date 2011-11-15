@@ -3,7 +3,9 @@ This project aims to convert Lua code to ECMAscript code, either using a compile
 Download
 ========
 
-TODO
+[lua.min.js](http://raw.github.com/mherkender/lua.js/precompiled/lua.min.js)
+[lua+parser.min.js](http://raw.github.com/mherkender/lua.js/precompiled/lua+parser.min.js) (for runtime parsing)
+[lua2js](http://raw.github.com/mherkender/lua.js/precompiled/lua2js) (for offline parsing)
 
 To build it yourself, just run make in the root of the project.
 
@@ -17,6 +19,8 @@ Usage
 You can use the lua2js tool to translate Lua code into Javascript directly.
 
 `./lua2js input.lua output.js`
+
+([node](http://nodejs.org/) is required to run lua2js)
 
 lua(.min).js must also be embedded on the same page as generated Javascript code. It contains all the functions necessary to keep the code working.
 
