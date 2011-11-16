@@ -1,5 +1,3 @@
-This project aims to convert Lua code to ECMAscript code, either using a compile tool, or live if the environment supports it.
-
 Download
 ========
 
