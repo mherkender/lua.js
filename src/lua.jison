@@ -112,7 +112,7 @@ script
       "  lua_createmodule(_G, name, slice(arguments, 1));\n" +
       "};\n" +
       "_G.str['require'] = function (name) {\n" +
-      "  lua_module(_G, name);\n" +
+      "  lua_require(_G, name);\n" +
       "};\n" +
       "_G.str['package'].str['seeall'] = function (module) {\n" +
       "  if (!module.metatable) {\n" +

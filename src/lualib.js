@@ -847,11 +847,15 @@ function lua_createmodule(G, name, options) {
   }
   return t;
 }
-function lua_module(G, name) {
+function lua_module(name) {
   var t = lua_tableget(lua_packages, name);
   if (t == null) {
     throw new Error("Module " + name + " not found. Module must be loaded before use.");
   }
+  return t;
+}
+function lua_require(G, name) {
+  var t = lua_module(name);
   var pkg = G;
   var names = name.split(".");
   for (var i = 0; i < names.length - 1; i++) {
