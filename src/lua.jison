@@ -238,8 +238,8 @@ stat
   | LOCAL namelist { $$ = "var " + $2.join(", ") + ";"; }
   | functioncall { $$ = $1 + ";"; }
   | DO block END { $$ = "/* do */\n" + $2 + "\n/* end */"; }
-  | WHILE exp DO block END { $$ = "while (lua_true(" + $2.single + ")) (function () {\n" + $4 + "\n})();"; }
-  | REPEAT block UNTIL exp { $$ = "do (function() {\n" + $2 + "\n})() while (lua_true(" + $4.single + "));"; }
+  | WHILE exp DO block END { $$ = "while (lua_true(" + $2.single + ")) {\n" + $4 + "\n}"; }
+  | REPEAT block UNTIL exp { $$ = "do {\n" + $2 + "\n} while (lua_true(" + $4.single + "));"; }
   | IF exp THEN block END { $$ = "if (lua_true(" + $2.single + ")) {\n" + $4 + "\n}"; }
   | IF exp THEN block elseif END { $$ = "if (lua_true(" + $2.single + ")) {\n" + $4 + "\n} " + $5; }
   | FOR indent namelist "=" exp "," exp DO block unindent END {
@@ -248,9 +248,9 @@ stat
     }
     $$ = "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
       "stop_" + $2 + " = lua_assertfloat(" + $7.single + ");\n" +
-      "for (; " + $3[0] + " <= stop_" + $2 + "; " + $3[0] + "++) (function() {\n" +
+      "for (; " + $3[0] + " <= stop_" + $2 + "; " + $3[0] + "++) {\n" +
       $9 + "\n" +
-      "})();";
+      "}";
   }
   | FOR indent namelist "=" exp "," exp "," exp DO block unindent END {
     if ($3.length != 1) {
@@ -259,9 +259,9 @@ stat
     $$ = "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
       "stop_" + $2 + " = lua_assertfloat(" + $7.single + "), " +
       "step_" + $2 + " = lua_assertfloat(" + $9.single + ");\n" +
-      "for (; step_" + $2 + " > 0 ? " + $3[0] + " <= stop_" + $2 + " : " + $3[0] + " >= stop_" + $2 + "; " + $3[0] + " += step_" + $2 + ") (function () {\n" +
+      "for (; step_" + $2 + " > 0 ? " + $3[0] + " <= stop_" + $2 + " : " + $3[0] + " >= stop_" + $2 + "; " + $3[0] + " += step_" + $2 + ") {\n" +
       $11 + "\n" +
-      "})();";
+      "}";
   }
   | FOR indent namelist IN explist DO block unindent END {
     $$ = "var " + $3.join(", ") + ";\n" +
@@ -272,17 +272,17 @@ stat
 
     if ($3.length == 1) {
       $$ += "tmp = null;\n" +
-        "while ((" + $3[0] + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) (function () {\n" +
+        "while ((" + $3[0] + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) {\n" +
         $7 + "\n" +
-        "})();";
+        "}";
     } else {
-      $$ += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) (function () {\n" +
+      $$ += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n" +
         "  var_" + $2 + " = tmp[0];\n";
       for (var i = 0; i < $3.length; i++) {
         $$ += "  " + $3[i] + " = tmp[" + i + "];\n";
       }
       $$ += $7 + "\n" +
-        "})();\n" +
+        "}\n" +
         "tmp = null;";
     }
   }
