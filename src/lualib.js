@@ -120,19 +120,19 @@ function lua_newtable(autoIndexList) {
 }
 function lua_len(op) {
   if (typeof op == "string") {
-    return [op.length];
+    return op.length;
   } else if (typeof op == "object" && op != null) {
     if (op.length == null) {
       var index = 0;
       if (op.arraymode) {
         while (op.uints[index++] != null) {};
-        return [op.length = index - 1];
+        return op.length = index - 1;
       } else {
         while (op.uints[++index] != null) {};
-        return [op.length = index - 1];
+        return op.length = index - 1;
       }
     } else {
-      return [op.length];
+      return op.length;
     }
   } else {
     var h = op.metatable && op.metatable.str["__len"];
