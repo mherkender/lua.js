@@ -132,11 +132,17 @@ indent
     for (var i in locals) {
       localsCopy[i] = locals[i];
     }
-    stack.push({locals: localsCopy, blockId: blockId});
+    stack.push({locals: localsCopy, blockId: blockId, inLoop: inLoop});
 
     indentLevel++;
     blockIdMax++;
     $$ = blockId = blockIdMax;
+  }
+  ;
+
+loopindent
+  : indent {
+    inLoop = true;
   }
   ;
 
@@ -145,12 +151,17 @@ unindent
     var stackData = stack.pop();
     indentLevel--;
     locals = stackData.locals;
+    inLoop = stackData.inLoop;
     $$ = blockId = stackData.blockId;
   }
   ;
 
 block
   : indent chunk unindent { $$ = $2 }
+  ;
+
+loopblock
+  : loopindent chunk unindent { $$ = $2 }
   ;
 
 semi
@@ -238,11 +249,11 @@ stat
   | LOCAL namelist { $$ = "var " + $2.join(", ") + ";"; }
   | functioncall { $$ = $1 + ";"; }
   | DO block END { $$ = "/* do */\n" + $2 + "\n/* end */"; }
-  | WHILE exp DO block END { $$ = "while (lua_true(" + $2.single + ")) {\n" + $4 + "\n}"; }
-  | REPEAT block UNTIL exp { $$ = "do {\n" + $2 + "\n} while (lua_true(" + $4.single + "));"; }
+  | WHILE exp DO loopblock END { $$ = "while (lua_true(" + $2.single + ")) {\n" + $4 + "\n}"; }
+  | REPEAT loopblock UNTIL exp { $$ = "do {\n" + $2 + "\n} while (lua_true(" + $4.single + "));"; }
   | IF exp THEN block END { $$ = "if (lua_true(" + $2.single + ")) {\n" + $4 + "\n}"; }
   | IF exp THEN block elseif END { $$ = "if (lua_true(" + $2.single + ")) {\n" + $4 + "\n} " + $5; }
-  | FOR indent namelist "=" exp "," exp DO block unindent END {
+  | FOR indent namelist "=" exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
@@ -252,7 +263,7 @@ stat
       $9 + "\n" +
       "}";
   }
-  | FOR indent namelist "=" exp "," exp "," exp DO block unindent END {
+  | FOR indent namelist "=" exp "," exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
@@ -263,7 +274,7 @@ stat
       $11 + "\n" +
       "}";
   }
-  | FOR indent namelist IN explist DO block unindent END {
+  | FOR indent namelist IN explist DO loopblock unindent END {
     $$ = "var " + $3.join(", ") + ";\n" +
       "tmp = " + getTempDecl($5) + ";\n" +
       "var f_" + $2 + " = tmp[0], " +
@@ -286,43 +297,22 @@ stat
         "tmp = null;";
     }
   }
-  | FUNCTION funcname indent funcbody unindent {
+  | FUNCTION funcname funcbody {
     $$ = "_G";
     for (var i = 0; i < $2.length; i++) {
       $$ += ".str['" + $2[i] + "']";
     }
-    $$ += " = (function (" + $4.args.join(", ") + ") {\n" +
-      "  var tmp;\n";
-    if ($4.hasVarargs) {
-      $$ += "  var varargs = lua_newtable(slice(arguments, " + $4.args.length + "));\n";
-    }
-    $$ += $4.body + "\n" +
-      "  return [];\n" +
-      "});";
+    $$ += " = " + $3 + ";";
   }
-  | FUNCTION funcname ":" NAME indent mfuncbody unindent {
+  | FUNCTION funcname ":" NAME mfuncbody {
     $$ = "_G";
     for (var i = 0; i < $2.length; i++) {
       $$ += ".str['" + $2[i] + "']";
     }
-    $$ += ".str['" + $4 + "'] = (function (" + $6.args.join(", ") + ") {\n" +
-      "  var tmp;\n";
-    if ($6.hasVarargs) {
-      $$ += "  var varargs = lua_newtable(slice(arguments, " + $6.args.length + "));\n";
-    }
-    $$ += $6.body + "\n" +
-      "  return [];\n" +
-      "});";
+    $$ += ".str['" + $4 + "'] = " + $5 + ";";
   }
-  | LOCAL FUNCTION NAME indent funcbody unindent {
-    $$ = "var " + getLocal($3) + " = (function (" + $5.args.join(", ") + ") {\n" +
-      "  var tmp;\n";
-    if ($5.hasVarargs) {
-      $$ += "  var varargs = lua_newtable(slice(arguments, " + $5.args.length + "));\n";
-    }
-    $$ += $5.body + "\n" +
-      "  return [];\n" +
-      "});";
+  | LOCAL FUNCTION NAME funcbody {
+    $$ = "var " + getLocal($3) + " = " + $4 + ";";
   }
   ;
 
@@ -385,16 +375,8 @@ exp
   | tableconstructor { $$ = {single: $1}; }
   | NIL { $$ = {single: 'null'}; }
   | prefixexp { $$ = $1; }
-  | FUNCTION indent funcbody unindent {
-    var fn = "(function (" + $3.args.join(", ") + ") {\n" +
-      "  var tmp;\n";
-    if ($3.hasVarargs) {
-      fn += "  var varargs = lua_newtable(slice(arguments, " + $3.args.length + "));\n";
-    }
-    fn += $3.body + "\n" +
-      "  return [];\n" +
-      "})";
-    $$ = {single: fn};
+  | FUNCTION funcbody {
+    $$ = {single: $2};
   }
   | exp "+" exp { $$ = {single: 'lua_add(' + $1.single + ', ' + $3.single + ')'}; }
   | exp "-" exp { $$ = {single: 'lua_subtract(' + $1.single + ', ' + $3.single + ')'}; }
@@ -431,18 +413,31 @@ tableconstructor
   ;
 
 funcbody
-  : "(" ")" chunk END { $$ = {args: [], body: $3} }
-  | "(" arglist ")" chunk END { $$ = {args: $2, body: $4} }
-  | "(" "..." ")" chunk END { $$ = {args: [], body: $4, hasVarargs: true} }
-  | "(" arglist "," "..." ")" chunk END { $$ = {args: $2, body: $6, hasVarargs: true} }
+  : indent copylocals "(" ")" chunk unindent END { $$ = createFunction([], $5); }
+  | indent copylocals "(" arglist ")" chunk unindent END { $$ = createFunction($4, $6); }
+  | indent copylocals "(" "..." ")" chunk unindent END { $$ = createFunction([], $7, true); }
+  | indent copylocals "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction($4, $8, true); }
   ;
 
 mfuncbody
-  : addself funcbody { $$ = {args: [setLocal("self", "self")].concat($2.args), body: $2.body, hasVarargs: $2.hasVarargs} }
+  : indent copylocals addself "(" ")" chunk unindent END { $$ = createFunction(["self"], $6); }
+  | indent copylocals addself "(" arglist ")" chunk unindent END { $$ = createFunction(["self"].concat($5), $7); }
+  | indent copylocals addself "(" "..." ")" chunk unindent END { $$ = createFunction(["self"], $7, true); }
+  | indent copylocals addself "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction(["self"].concat($5), $9, true); }
   ;
 
 addself
   : { setLocal("self", "self") }
+  ;
+
+copylocals
+  : {
+    if (inLoop) {
+      for (var i in locals) {
+        setLocal(i, "copy" + locals[i]);
+      }
+    }
+  }
   ;
 
 var
@@ -494,6 +489,7 @@ var blockId = 0;
 var blockIdMax = 0;
 var locals = {};
 var stack = [];
+var inLoop = false;
 
 function getLocal(name, alternative) {
   if (!locals[name]) {
@@ -523,4 +519,48 @@ function getTempDecl(explist) {
 
 function longStringToString(str) {
   return '"' + str.substring(0, str.length - 2).replace(/^\[\[(\r\n|\r|\n)?/m, "").replace(/\n/mg, "\\n").replace(/\r/mg, "\\r").replace(/\"/mg, "\\\"") + '"';
+}
+
+function createFunction(args, body, hasVarargs) {
+  var result;
+  if (inLoop) {
+    var hasLocals = false;
+    for (var i in locals) {
+      hasLocals = true;
+    }
+    if (hasLocals) {
+      result = "(function () {\n" +
+        "  var ";
+
+      var first = true;
+      for (var i in locals) {
+        if (!first) {
+          result += ", ";
+        } else {
+          first = false;
+        }
+        result += "copy" + locals[i] + " = " + locals[i];
+      }
+        
+      result += "; // copy local variables\n" +
+        "  return function (" + args.join(", ") + ") {\n" +
+        "    var tmp;\n";
+      if (hasVarargs) {
+        result += "    var varargs = lua_newtable(slice(arguments, " + args.length + "));\n";
+      }
+      return result + "  " + body.split("\n").join("\n  ") + "\n" +
+        "    return [];\n" +
+        "  };\n" +
+        "})()";
+    }
+  }
+
+  result = "(function (" + args.join(", ") + ") {\n" +
+    "  var tmp;\n";
+  if (hasVarargs) {
+    result += "  var varargs = lua_newtable(slice(arguments, " + args.length + "));\n";
+  }
+  return result + body + "\n" +
+    "  return [];\n" +
+    "})";
 }
