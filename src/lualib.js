@@ -57,8 +57,9 @@ function lua_isuint(n) {
   return n && (n & 0x7fffffff) == n;
 }
 
-function ReturnValues(vars) {
+function ReturnValues(vars, count) {
   this.vars = vars || [];
+  this.count = count || 1;
 }
 
 // methods used by generated lua code
@@ -147,7 +148,7 @@ function lua_rawcall(func, args) {
   try {
     return func.apply(null, args);
   } catch (e) {
-    if (e.constructor == ReturnValues) {
+    if (e.constructor == ReturnValues && --e.count <= 0) {
       return e.vars;
     }
     throw e;
@@ -653,7 +654,22 @@ lua_core["type"] = function (v) {
   }
 };
 lua_core["unpack"] = function (list, i, j) {
-  not_supported();
+  ensure_arraymode(list);
+  if (list.length != null) {
+    j = list.length;
+  } else {
+    j = 0;
+    while (list.uints[j++] != null) {};
+    list.length = --j;
+  }
+
+  if (i == null || i < 1) {
+    i = 1;
+  }
+  if (j == null) {
+    j = list.length;
+  }
+  throw new ReturnValues(list.uints.slice(i - 1, j), 2);
 };
 lua_core["_VERSION"] = "Lua 5.1";
 lua_core["xpcall"] = function () {
