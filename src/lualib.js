@@ -57,6 +57,10 @@ function lua_isuint(n) {
   return n && (n & 0x7fffffff) == n;
 }
 
+function ReturnValues(vars) {
+  this.vars = vars || [];
+}
+
 // methods used by generated lua code
 function lua_true(op) {
   return op != null && op !== false;
@@ -139,13 +143,23 @@ function lua_len(op) {
     }
   }
 }
+function lua_rawcall(func, args) {
+  try {
+    return func.apply(null, args);
+  } catch (e) {
+    if (e.constructor == ReturnValues) {
+      return e.vars;
+    }
+    throw e;
+  }
+}
 function lua_call(func, args) {
   if (typeof func == "function") {
-    return func.apply(null, args);
+    return lua_rawcall(func, args);
   } else {
     var h = func.metatable && func.metatable.str["__call"];
     if (h != null) {
-      return h.apply(null, [func].concat(args))[0];
+      return lua_rawcall(h, [func].concat(args));
     } else {
       throw new Error("Could not call " + func + " as function");
     }
