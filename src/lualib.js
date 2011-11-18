@@ -137,7 +137,7 @@ function lua_len(op) {
   } else {
     var h = op.metatable && op.metatable.str["__len"];
     if (h) {
-      return h(op)[0];
+      return lua_rawcall(h, [op])[0];
     } else {
       throw new Error("Length of <" + op + "> not supported");
     }
@@ -183,7 +183,7 @@ function lua_eq(op1, op2) {
   }
   var h = (op1.metatable && op1.metatable.str["__eq"]) || (op2.metatable && op2.metatable.str["__eq"]);
   if (h) {
-    return h(op1, op2)[0];
+    return lua_rawcall(h, [op1, op2])[0];
   } else {
     return false;
   }
@@ -197,7 +197,7 @@ function lua_lt(op1, op2) {
   } else {
     var h = (op1.metatable && op1.metatable.str["__lt"]) || (op2.metatable && op2.metatable.str["__lt"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Unable to compare " + op1 + " and " + op2);
     }
@@ -212,11 +212,11 @@ function lua_lte(op1, op2) {
   } else {
     var h = (op1.metatable && op1.metatable.str["__le"]) || (op2.metatable && op2.metatable.str["__le"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       var h = (op1.metatable && op1.metatable.str["__lt"]) || (op2.metatable && op2.metatable.str["__lt"]);
       if (h) {
-        return !h(op2, op1)[0];
+        return !lua_rawcall(h, [op2, op1])[0];
       } else {
         throw new Error("Unable to compare " + op1 + " and " + op2);
       }
@@ -230,7 +230,7 @@ function lua_unm(op) {
   } else {
     var h = op.metatable && op.metatable.str["__unm"];
     if (h) {
-      return h(op)[0];
+      return lua_rawcall(h, [op])[0];
     } else {
       throw new Error("Inverting <" + op + "> not supported");
     }
@@ -241,7 +241,7 @@ function lua_add(op1, op2) {
   if (o1 == null || o2 == null) {
     var h = (op1.metatable && op1.metatable.str["__add"]) || (op2.metatable && op2.metatable.str["__add"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Adding <" + op1 + "> and <" + op2 + "> not supported");
     }
@@ -254,7 +254,7 @@ function lua_subtract(op1, op2) {
   if (o1 == null || o2 == null) {
     var h = (op1.metatable && op1.metatable.str["__sub"]) || (op2.metatable && op2.metatable.str["__sub"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Subtracting <" + op1 + "> and <" + op2 + "> not supported");
     }
@@ -267,7 +267,7 @@ function lua_divide(op1, op2) {
   if (o1 == null || o2 == null) {
     var h = (op1.metatable && op1.metatable.str["__div"]) || (op2.metatable && op2.metatable.str["__div"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Dividing <" + op1 + "> and <" + op2 + "> not supported");
     }
@@ -280,7 +280,7 @@ function lua_multiply(op1, op2) {
   if (o1 == null || o2 == null) {
     var h = (op1.metatable && op1.metatable.str["__mul"]) || (op2.metatable && op2.metatable.str["__mul"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Multiplying <" + op1 + "> and <" + op2 + "> not supported");
     }
@@ -293,7 +293,7 @@ function lua_power(op1, op2) {
   if (o1 == null || o2 == null) {
     var h = (op1.metatable && op1.metatable.str["__pow"]) || (op2.metatable && op2.metatable.str["__pow"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("<" + op1 + "> to the power of <" + op2 + "> not supported");
     }
@@ -306,7 +306,7 @@ function lua_mod(op1, op2) {
   if (o1 == null || o2 == null) {
     var h = (op1.metatable && op1.metatable.str["__mod"]) || (op2.metatable && op2.metatable.str["__mod"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Modulo <" + op1 + "> and <" + op2 + "> not supported");
     }
@@ -403,7 +403,7 @@ function lua_tableget(table, key) {
     }
   }
   if (typeof h == "function") {
-    return h(table, key)[0];
+    return lua_rawcall(h, [table, key])[0];
   } else {
     return lua_rawget(h, key);
   }
@@ -433,7 +433,7 @@ function lua_tableset(table, key, value) {
     }
   }
   if (typeof h == "function") {
-    h(table, key, value);
+    lua_rawcall(h, [table, key, value]);
   } else {
     lua_rawset(h, key, value);
   }
@@ -446,7 +446,7 @@ function lua_concat(op1, op2) {
   } else {
     var h = (op1.metatable && op1.metatable.str["__concat"]) || (op2.metatable && op2.metatable.str["__concat"]);
     if (h) {
-      return h(op1, op2)[0];
+      return lua_rawcall(h, [op1, op2])[0];
     } else {
       throw new Error("Unable to concat " + op1 + " and " + op2);
     }
@@ -617,7 +617,7 @@ lua_core["tostring"] = function (e) {
   }
   var h = e.metatable && e.metatable.str["__tostring"];
   if (h) {
-    return h(e);
+    return lua_rawcall(h, [e]);
   } else {
     switch (typeof(e)) {
       case "number":
