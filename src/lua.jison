@@ -121,7 +121,7 @@ script
       "  module.metatable.str['__index'] = _G;\n" +
       "};\n" +
       "{\n" +
-      $2 + "\n" +
+      cleanupLastStatements($2) + "\n" +
       "}\n";
   }
   ;
@@ -132,23 +132,11 @@ indent
     for (var i in locals) {
       localsCopy[i] = locals[i];
     }
-    stack.push({locals: localsCopy, blockId: blockId, inLoop: inLoop});
+    stack.push({locals: localsCopy, blockId: blockId});
 
     indentLevel++;
     blockIdMax++;
     $$ = blockId = blockIdMax;
-  }
-  ;
-
-loopindent
-  : indent {
-    inLoop = true;
-  }
-  ;
-
-funcindent
-  : indent {
-    inLoop = false;
   }
   ;
 
@@ -157,7 +145,6 @@ unindent
     var stackData = stack.pop();
     indentLevel--;
     locals = stackData.locals;
-    inLoop = stackData.inLoop;
     $$ = blockId = stackData.blockId;
   }
   ;
@@ -167,7 +154,20 @@ block
   ;
 
 loopblock
-  : loopindent chunk unindent { $$ = "(function () {\n" + $2 + "\n})();"; }
+  : indent chunk unindent {
+    // if a function is declared inside of a loop, there are some differences
+    // with how variables behave due to the difference in scoping in JS and Lua
+    // by wrapping a loop block in a function call, we resolve these problems, but it
+    // is only necessary for situations where functions are declared inside of a loop
+
+    if (/\/\/\ lua\ function$/gm.test($2)) {
+      $$ = "(function () {\n" +
+        cleanupLastStatements($2, true) + "\n" +
+        "})();";
+    } else {
+      $$ = "{\n" + $2 + "\n}";
+    }
+  }
   ;
 
 semi
@@ -318,20 +318,12 @@ stat
 
 laststat
   : RETURN explist {
-    if (inLoop) {
-      $$ = "throw new ReturnValues(" + getTempDecl($2) + ");";
-    } else {
-      $$ = "return " + getTempDecl($2) + ";";
-    }
+    $$ = "/*return " + getTempDecl($2) + "*/";
   }
   | RETURN {
-    if (inLoop) {
-      $$ = "throw new ReturnValues();";
-    } else {
-      $$ = "return [];";
-    }
+    $$ = "/*return []*/";
   }
-  | BREAK { $$ = inLoop ? "return;" : "break;"; }
+  | BREAK { $$ = "/*break*/"; }
   ;
 
 elseif
@@ -423,17 +415,17 @@ tableconstructor
   ;
 
 funcbody
-  : funcindent "(" ")" chunk unindent END { $$ = createFunction([], $4); }
-  | funcindent "(" arglist ")" chunk unindent END { $$ = createFunction($3, $5); }
-  | funcindent "(" "..." ")" chunk unindent END { $$ = createFunction([], $6, true); }
-  | funcindent "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction($3, $7, true); }
+  : indent "(" ")" chunk unindent END { $$ = createFunction([], $4); }
+  | indent "(" arglist ")" chunk unindent END { $$ = createFunction($3, $5); }
+  | indent "(" "..." ")" chunk unindent END { $$ = createFunction([], $6, true); }
+  | indent "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction($3, $7, true); }
   ;
 
 mfuncbody
-  : funcindent addself "(" ")" chunk unindent END { $$ = createFunction(["self"], $5); }
-  | funcindent addself "(" arglist ")" chunk unindent END { $$ = createFunction(["self"].concat($4), $6); }
-  | funcindent addself "(" "..." ")" chunk unindent END { $$ = createFunction(["self"], $6, true); }
-  | funcindent addself "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction(["self"].concat($4), $8, true); }
+  : indent addself "(" ")" chunk unindent END { $$ = createFunction(["self"], $5); }
+  | indent addself "(" arglist ")" chunk unindent END { $$ = createFunction(["self"].concat($4), $6); }
+  | indent addself "(" "..." ")" chunk unindent END { $$ = createFunction(["self"], $6, true); }
+  | indent addself "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction(["self"].concat($4), $8, true); }
   ;
 
 addself
@@ -489,7 +481,6 @@ var blockId = 0;
 var blockIdMax = 0;
 var locals = {};
 var stack = [];
-var inLoop = false;
 
 function getLocal(name, alternative) {
   if (!locals[name]) {
@@ -521,13 +512,23 @@ function longStringToString(str) {
   return '"' + str.substring(0, str.length - 2).replace(/^\[\[(\r\n|\r|\n)?/m, "").replace(/\n/mg, "\\n").replace(/\r/mg, "\\r").replace(/\"/mg, "\\\"") + '"';
 }
 
+function cleanupLastStatements(str, breakFromFunction) {
+  // \044 is used instead of the dollar sign so jison doesn't replace the character
+  if (breakFromFunction) {
+    return str.replace(/\/\*return\ ((.|\n)*?)\*\//gm, "throw new ReturnValues(\0441);").replace(/\/\*break\*\/$/gm, "return;");
+  } else {
+    return str.replace(/\/\*return\ ((.|\n)*?)\*\//gm, "return \0441;").replace(/\/\*break\*\//gm, "break;");
+  }
+}
+
 function createFunction(args, body, hasVarargs) {
-  var result = "(function (" + args.join(", ") + ") {\n" +
+  var result = "(function (" + args.join(", ") + ") { // lua function\n" +
     "  var tmp;\n";
   if (hasVarargs) {
     result += "  var varargs = lua_newtable(slice(arguments, " + args.length + "));\n";
   }
-  return result + body + "\n" +
-    "  return [];\n" +
+  return result + cleanupLastStatements(
+      body + "\n" +
+      "  /*return []*/\n") +
     "})";
 }
