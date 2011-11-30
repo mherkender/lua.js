@@ -857,6 +857,7 @@ lua_core["os"] = {
   },
   "exit": function () {
     //window.close();
+    not_supported();
   },
   "getenv": function (varname) {
     return [null];
