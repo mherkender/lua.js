@@ -151,6 +151,8 @@ function lua_rawcall(func, args) {
     if (e.constructor == ReturnValues && --e.count <= 0) {
       return e.vars;
     }
+    // This breaks the stack on Chrome
+    // <http://code.google.com/p/chromium/issues/detail?id=60240>
     throw e;
   }
 }
