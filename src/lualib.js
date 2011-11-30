@@ -846,6 +846,7 @@ lua_core["os"] = {
     return [(((new Date()).getTime()) / 1000) - clock_start];
   },
   "date": function (format, time) {
+    // TODO
     return ["[" + time + "]" + format];
   },
   "difftime": function (t2, t1) {
