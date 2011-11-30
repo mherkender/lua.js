@@ -455,31 +455,6 @@ function lua_concat(op1, op2) {
 }
 
 // core lua functions
-var lua_core = {};
-lua_core["assert"] = function (value, message) {
-  if (arguments.length < 1) {
-    message = "assertion failed!";
-  }
-  if (value != null && value !== false) {
-    return value;
-  } else {
-    throw new Error(message);
-  }
-};
-lua_core["collectgarbage"] = function () {};// no-op
-lua_core["dofile"] = function () {
-  not_supported();
-};
-lua_core["error"] = function (message, level) {
-  // TODO: "level" is currently ignored
-  throw new Error(message);
-};
-lua_core["getfenv"] = function (func, table) {
-  not_supported();
-};
-lua_core["getmetatable"] = function (op) {
-  return op.metatable && (op.metatable.str["__metatable"] || op.metatable);
-};
 function _ipairs_next(table, index) {
   var entry;
   if (table.arraymode) {
@@ -492,188 +467,214 @@ function _ipairs_next(table, index) {
   }
   return [index + 1, entry];
 }
-lua_core["ipairs"] = function (table) {
-  return [_ipairs_next, table, 0];
-};
-lua_core["load"] = function (func, chunkname) {
-  var script = "", chunk;
-  while ((chunk = func()) != null && chunk != "") {
-    script += chunk;
-  }
-  try {
-    return [lua_load(script, chunkname)];
-  } catch (e) {
-    return [null, e.message];
-  }
-};
-lua_core["loadfile"] = function () {
-  not_supported();
-};
-lua_core["loadstring"] = function (string, chunkname) {
-  try {
-    return [lua_load(string, chunkname)];
-  } catch (e) {
-    return [null, e.message];
-  }
-};
-lua_core["next"] = function () {
-  not_supported();
-};
-lua_core["pairs"] = function (table) {
-  var props = [], i;
-  for (i in table.str) {
-    props.push(i);
-  }
-  if (table.arraymode) {
-    var j = table.uints.length;
-    while (j-- > 0) {
-      if (table.uints[j] != null) {
-        props.push(j + 1);
+var lua_core = {
+  "assert": function (value, message) {
+    if (arguments.length < 1) {
+      message = "assertion failed!";
+    }
+    if (value != null && value !== false) {
+      return value;
+    } else {
+      throw new Error(message);
+    }
+  },
+  "collectgarbage": function () {},// no-op
+  "dofile": function () {
+    not_supported();
+  },
+  "error": function (message, level) {
+    // TODO: "level" is currently ignored
+    throw new Error(message);
+  },
+  "getfenv": function (func, table) {
+    not_supported();
+  },
+  "getmetatable": function (op) {
+    return op.metatable && (op.metatable.str["__metatable"] || op.metatable);
+  },
+  "ipairs": function (table) {
+    return [_ipairs_next, table, 0];
+  },
+  "load": function (func, chunkname) {
+    var script = "", chunk;
+    while ((chunk = func()) != null && chunk != "") {
+      script += chunk;
+    }
+    try {
+      return [lua_load(script, chunkname)];
+    } catch (e) {
+      return [null, e.message];
+    }
+  },
+  "loadfile": function () {
+    not_supported();
+  },
+  "loadstring": function (string, chunkname) {
+    try {
+      return [lua_load(string, chunkname)];
+    } catch (e) {
+      return [null, e.message];
+    }
+  },
+  "next": function () {
+    not_supported();
+  },
+  "pairs": function (table) {
+    var props = [], i;
+    for (i in table.str) {
+      props.push(i);
+    }
+    if (table.arraymode) {
+      var j = table.uints.length;
+      while (j-- > 0) {
+        if (table.uints[j] != null) {
+          props.push(j + 1);
+        }
+      }
+    } else {
+      for (i in table.uints) {
+        props.push(parseFloat(i));
       }
     }
-  } else {
-    for (i in table.uints) {
+    for (i in table.floats) {
       props.push(parseFloat(i));
     }
-  }
-  for (i in table.floats) {
-    props.push(parseFloat(i));
-  }
-  for (i in table.bools) {
-    props.push(i === "true" ? true : false);
-  }
+    for (i in table.bools) {
+      props.push(i === "true" ? true : false);
+    }
 
-  // okay, so I'm faking it here
-  // regardless of what key is given, this function will return the next value
-  // not sure how to do it the "right way" right now
-  i = 0;
-  return [function (table, key) {
-    var entry;
-    do {
-      if (i >= props.length) {
-        return [null, null];
+    // okay, so I'm faking it here
+    // regardless of what key is given, this function will return the next value
+    // not sure how to do it the "right way" right now
+    i = 0;
+    return [function (table, key) {
+      var entry;
+      do {
+        if (i >= props.length) {
+          return [null, null];
+        }
+        key = props[i++];
+        entry = lua_rawget(table, key);
+      } while (entry == null);
+      return [key, entry];
+    }, table, null];
+  },
+  "pcall": function (func) {
+    try {
+      return [true].concat(func.apply(null, slice(arguments, 1)));
+    } catch (e) {
+      return [false, e.message];
+    }
+  },
+  "print": lua_print,
+  "rawequal": function (op1, op2) {
+    return (op1 == op2) || (op1 == null && op2 == null);
+  },
+  "rawget": function (table, key) {
+    if (typeof table == "object" && table != null && key != null) {
+      return [lua_rawget(table, key)];
+    }
+    throw new Error("Unable to index key " + key + " from " + table);
+  },
+  "rawset": function (table, key, value) {
+    if (typeof table == "object" && table != null && key != null) {
+      lua_rawset(table, key, value);
+      return [table];
+    }
+    throw new Error("Unable set key " + key + " in " + table);
+  },
+  "select": function () {
+    not_supported();
+  },
+  "setfenv": function (func, table) {
+    not_supported();
+  },
+  "setmetatable": function (table, metatable) {
+    if (typeof table != "object" || table == null) {
+      throw new Error("table expected, got " + table);
+    }
+    if (metatable == null) {
+      delete table.metatable;
+    } else if (typeof metatable === "object") {
+      table.metatable = metatable;
+    } else {
+      throw new Error("table or nil expected, got " + metatable);
+    }
+    return [table]
+  },
+  "tonumber": function (e, base) {
+    if (typeof e == "number") {
+      return [e];
+    }
+    if (base === 10 || base == null) {
+      return [parseFloat(e)];
+    } else {
+      return [parseInt(e, base)];
+    }
+  },
+  "tostring": function (e) {
+    if (e == null) {
+      return ["nil"];
+    }
+    var h = e.metatable && e.metatable.str["__tostring"];
+    if (h) {
+      return lua_rawcall(h, [e]);
+    } else {
+      switch (typeof(e)) {
+        case "number":
+        case "boolean":
+          return [e.toString()];
+        case "string":
+          return [e];
+        case "object":
+          return ["table"];
+        case "function":
+          return ["function"];
+        default:
+          return ["nil"];
       }
-      key = props[i++];
-      entry = lua_rawget(table, key);
-    } while (entry == null);
-    return [key, entry];
-  }, table, null];
-};
-lua_core["pcall"] = function (func) {
-  try {
-    return [true].concat(func.apply(null, slice(arguments, 1)));
-  } catch (e) {
-    return [false, e.message];
-  }
-};
-lua_core["print"] = lua_print;
-lua_core["rawequal"] = function (op1, op2) {
-  return (op1 == op2) || (op1 == null && op2 == null);
-};
-lua_core["rawget"] = function (table, key) {
-  if (typeof table == "object" && table != null && key != null) {
-    return [lua_rawget(table, key)];
-  }
-  throw new Error("Unable to index key " + key + " from " + table);
-};
-lua_core["rawset"] = function (table, key, value) {
-  if (typeof table == "object" && table != null && key != null) {
-    lua_rawset(table, key, value);
-    return [table];
-  }
-  throw new Error("Unable set key " + key + " in " + table);
-};
-lua_core["select"] = function () {
-  not_supported();
-};
-lua_core["setfenv"] = function (func, table) {
-  not_supported();
-};
-lua_core["setmetatable"] = function (table, metatable) {
-  if (typeof table != "object" || table == null) {
-    throw new Error("table expected, got " + table);
-  }
-  if (metatable == null) {
-    delete table.metatable;
-  } else if (typeof metatable === "object") {
-    table.metatable = metatable;
-  } else {
-    throw new Error("table or nil expected, got " + metatable);
-  }
-  return [table]
-};
-lua_core["tonumber"] = function (e, base) {
-  if (typeof e == "number") {
-    return [e];
-  }
-  if (base === 10 || base == null) {
-    return [parseFloat(e)];
-  } else {
-    return [parseInt(e, base)];
-  }
-};
-lua_core["tostring"] = function (e) {
-  if (e == null) {
-    return ["nil"];
-  }
-  var h = e.metatable && e.metatable.str["__tostring"];
-  if (h) {
-    return lua_rawcall(h, [e]);
-  } else {
-    switch (typeof(e)) {
+    }
+  },
+  "type": function (v) {
+    switch (typeof v) {
       case "number":
-      case "boolean":
-        return [e.toString()];
+        return ["number"];
       case "string":
-        return [e];
-      case "object":
-        return ["table"];
+        return ["string"];
+      case "boolean":
+        return ["boolean"];
       case "function":
         return ["function"];
-      default:
+      case "object":
+        return [v === null ? "nil" : "table"];
+      case "undefined":
         return ["nil"];
+      default:
+        throw new Error("Unepected value of type " + typeof v);
     }
-  }
-};
-lua_core["type"] = function (v) {
-  switch (typeof v) {
-    case "number":
-      return ["number"];
-    case "string":
-      return ["string"];
-    case "boolean":
-      return ["boolean"];
-    case "function":
-      return ["function"];
-    case "object":
-      return [v === null ? "nil" : "table"];
-    case "undefined":
-      return ["nil"];
-    default:
-      throw new Error("Unepected value of type " + typeof v);
-  }
-};
-lua_core["unpack"] = function (list, i, j) {
-  ensure_arraymode(list);
-  if (list.length != null) {
-    j = list.length;
-  } else {
-    j = 0;
-    while (list.uints[j++] != null) {};
-    list.length = --j;
-  }
+  },
+  "unpack": function (list, i, j) {
+    ensure_arraymode(list);
+    if (list.length != null) {
+      j = list.length;
+    } else {
+      j = 0;
+      while (list.uints[j++] != null) {};
+      list.length = --j;
+    }
 
-  if (i == null || i < 1) {
-    i = 1;
+    if (i == null || i < 1) {
+      i = 1;
+    }
+    if (j == null) {
+      j = list.length;
+    }
+    throw new ReturnValues(list.uints.slice(i - 1, j), 2);
+  },
+  "_VERSION": "Lua 5.1",
+  "xpcall": function () {
+    not_supported();
   }
-  if (j == null) {
-    j = list.length;
-  }
-  throw new ReturnValues(list.uints.slice(i - 1, j), 2);
-};
-lua_core["_VERSION"] = "Lua 5.1";
-lua_core["xpcall"] = function () {
-  not_supported();
 };
 
 // coroutine
@@ -683,183 +684,193 @@ lua_core["coroutine"]["resume"] = lua_core["coroutine"]["running"] = lua_core["c
 };
 
 // debug
-lua_core["debug"] = {};
-lua_core["debug"]["getmetatable"] = function (obj) {
-  return [obj.metatable];
-}
+lua_core["debug"] = {
+  "getmetatable": function (obj) {
+    return [obj.metatable];
+  }
+};
 lua_core["debug"]["traceback"] = lua_core["debug"]["getfenv"] = lua_core["debug"]["gethook"] = lua_core["debug"]["getinfo"] = lua_core["debug"]["getlocal"] = lua_core["debug"]["getregistry"] = lua_core["debug"]["getupvalue"] = lua_core["debug"]["setfenv"] = lua_core["debug"]["sethook"] = lua_core["debug"]["setlocal"] = lua_core["debug"]["setupvalue"] = lua_core["debug"]["debug"] = function () {
   not_supported();
 };
 
 // io
-lua_core["io"] = {};
 var lua_write_buffer = "";
-lua_core["io"]["write"] = function () {
-  lua_write_buffer += Array.prototype.join.call(arguments, "");
-  var lines = lua_write_buffer.split("\n");
-  while (lines.length > 1) {
-    lua_print(lines.shift());
-  }
-  lua_write_buffer = lines[0];
-  return [];
-}
-lua_core["io"]["flush"] = function () {};// no-op
+lua_core["io"] = {
+  "write": function () {
+    lua_write_buffer += Array.prototype.join.call(arguments, "");
+    var lines = lua_write_buffer.split("\n");
+    while (lines.length > 1) {
+      lua_print(lines.shift());
+    }
+    lua_write_buffer = lines[0];
+    return [];
+  },
+  "flush": function () {},// no-op
+  "stderr": null,
+  "stdin": null,
+  "stdout": null
+};
 lua_core["io"]["close"] = lua_core["io"]["input"] = lua_core["io"]["lines"] = lua_core["io"]["output"] = lua_core["io"]["popen"] = lua_core["io"]["read"] = lua_core["io"]["tmpfile"] = lua_core["io"]["type"] = lua_core["io"]["open"] = function () {
   not_supported();
-}
-;
-lua_core["io"]["stderr"] = lua_core["io"]["stdin"] = lua_core["io"]["stdout"] = null;
+};
 
 // math
-lua_core["math"] = {};
-lua_core["math"]["abs"] = function (x) {
-  return [Math.abs(x)];
-};
-lua_core["math"]["acos"] = function (x) {
-  return [Math.acos(x)];
-};
-lua_core["math"]["asin"] = function (x) {
-  return [Math.asin(x)];
-};
-lua_core["math"]["atan"] = function (x) {
-  return [Math.atan(x)];
-};
-lua_core["math"]["atan2"] = function (y, x) {
-  return [Math.atan2(y, x)];
-};
-lua_core["math"]["ceil"] = function (x) {
-  return [Math.ceil(x)];
-};
-lua_core["math"]["cos"] = function (x) {
-  return [Math.cos(x)];
-};
-lua_core["math"]["cosh"] = function (x) {
-  return [(Math.exp(x) + Math.exp(-x)) / 2];
-};
-lua_core["math"]["deg"] = function (x) {
-  return [x * (Math.PI / 180)];
-};
-lua_core["math"]["exp"] = function (x) {
-  return [Math.exp(x)];
-};
-lua_core["math"]["floor"] = function (x) {
-  return [Math.floor(x)];
-};
-lua_core["math"]["fmod"] = function (x, y) {
-  return [x % y];
-};
-lua_core["math"]["frexp"] = function (m, e) {
-  not_supported();
-};
-lua_core["math"]["huge"] = Infinity;
-lua_core["math"]["ldexp"] = function (m, e) {
-  return [m * Math.pow(2, e)];
-};
-lua_core["math"]["log"] = function (x) {
-  return [Math.log(x)];
-};
-lua_core["math"]["log10"] = function (x) {
-  return [Math.log(x) / Math.LN10];
-};
-lua_core["math"]["max"] = function () {
-  return [Math.max.apply(null, arguments)];
-};
-lua_core["math"]["min"] = function () {
-  return [Math.min.apply(null, arguments)];
-};
-lua_core["math"]["modf"] = function (x) {
-  var frac = x % 1;
-  return [x - frac, frac];
-};
-lua_core["math"]["pi"] = Math.PI;
-lua_core["math"]["pow"] = function (x, y) {
-  return [Math.pow(x, y)];
-};
-lua_core["math"]["rad"] = function (x) {
-  return [x * (180 / Math.PI)];
-};
-lua_core["math"]["sin"] = function (x) {
-  return [Math.sin(x)];
-};
-lua_core["math"]["sinh"] = function (x) {
-  return [(Math.exp(x) - Math.exp(-x)) / 2];
-};
-lua_core["math"]["sqrt"] = function (x) {
-  return [Math.sqrt(x)];
-};
-lua_core["math"]["tan"] = function (x) {
-  return [Math.tan(x)];
-};
-lua_core["math"]["tanh"] = function (x) {
-  var a = Math.exp(x);
-  var b = Math.exp(-x);
-  return [(a - b) / (a + b)];
-};
-
 var max = 0x100000000;
 var seed = (Math.random() * max) & (max - 1);
-lua_core["math"]["random"] = function (m, n) {
-  // Based on the 32 bit mix function found here:
-  // http://www.concentric.net/~Ttwang/tech/inthash.htm
-  seed = ~seed + (seed << 15); // seed = (seed << 15) - seed - 1;
-  seed = seed ^ (seed >>> 12);
-  seed = seed + (seed << 2);
-  seed = seed ^ (seed >>> 4);
-  seed = seed * 2057; // seed = (seed + (seed << 3)) + (seed << 11);
-  seed = seed ^ (seed >>> 16);
+lua_core["math"] = {
+  "abs": function (x) {
+    return [Math.abs(x)];
+  },
+  "acos": function (x) {
+    return [Math.acos(x)];
+  },
+  "asin": function (x) {
+    return [Math.asin(x)];
+  },
+  "atan": function (x) {
+    return [Math.atan(x)];
+  },
+  "atan2": function (y, x) {
+    return [Math.atan2(y, x)];
+  },
+  "ceil": function (x) {
+    return [Math.ceil(x)];
+  },
+  "cos": function (x) {
+    return [Math.cos(x)];
+  },
+  "cosh": function (x) {
+    return [(Math.exp(x) + Math.exp(-x)) / 2];
+  },
+  "deg": function (x) {
+    return [x * (Math.PI / 180)];
+  },
+  "exp": function (x) {
+    return [Math.exp(x)];
+  },
+  "floor": function (x) {
+    return [Math.floor(x)];
+  },
+  "fmod": function (x, y) {
+    return [x % y];
+  },
+  "frexp": function (m, e) {
+    not_supported();
+  },
+  "huge": Infinity,
+  "ldexp": function (m, e) {
+    return [m * Math.pow(2, e)];
+  },
+  "log": function (x) {
+    return [Math.log(x)];
+  },
+  "log10": function (x) {
+    return [Math.log(x) / Math.LN10];
+  },
+  "max": function () {
+    return [Math.max.apply(null, arguments)];
+  },
+  "min": function () {
+    return [Math.min.apply(null, arguments)];
+  },
+  "modf": function (x) {
+    var frac = x % 1;
+    return [x - frac, frac];
+  },
+  "pi": Math.PI,
+  "pow": function (x, y) {
+    return [Math.pow(x, y)];
+  },
+  "rad": function (x) {
+    return [x * (180 / Math.PI)];
+  },
+  "sin": function (x) {
+    return [Math.sin(x)];
+  },
+  "sinh": function (x) {
+    return [(Math.exp(x) - Math.exp(-x)) / 2];
+  },
+  "sqrt": function (x) {
+    return [Math.sqrt(x)];
+  },
+  "tan": function (x) {
+    return [Math.tan(x)];
+  },
+  "tanh": function (x) {
+    var a = Math.exp(x);
+    var b = Math.exp(-x);
+    return [(a - b) / (a + b)];
+  },
+  "random": function (m, n) {
+    // Based on the 32 bit mix function found here:
+    // http://www.concentric.net/~Ttwang/tech/inthash.htm
+    seed = ~seed + (seed << 15); // seed = (seed << 15) - seed - 1;
+    seed = seed ^ (seed >>> 12);
+    seed = seed + (seed << 2);
+    seed = seed ^ (seed >>> 4);
+    seed = seed * 2057; // seed = (seed + (seed << 3)) + (seed << 11);
+    seed = seed ^ (seed >>> 16);
 
-  var val;
-  if (seed < 0) {
-    val = ((seed + max) / max) % 1;
-  } else {
-    val = (seed / max) % 1;
-  }
-
-  if (arguments.length >= 2) {
-    if (m >= n) {
-      throw new Error("Invalid range");
+    var val;
+    if (seed < 0) {
+      val = ((seed + max) / max) % 1;
+    } else {
+      val = (seed / max) % 1;
     }
-    return [Math.floor(val * (n - m + 1) + m)];
-  } else if (arguments.length == 1) {
-    return [Math.floor(val * m + 1)];
-  } else {
-    return val;
+
+    if (arguments.length >= 2) {
+      if (m >= n) {
+        throw new Error("Invalid range");
+      }
+      return [Math.floor(val * (n - m + 1) + m)];
+    } else if (arguments.length == 1) {
+      return [Math.floor(val * m + 1)];
+    } else {
+      return val;
+    }
+  },
+  "randomseed": function (x) {
+    seed = x & (max - 1);
   }
-};
-lua_core["math"]["randomseed"] = function (x) {
-  seed = x & (max - 1);
 };
 
 // os
-lua_core["os"] = {};
 // TODO: this should be different for each script, I think?
 var clock_start = (new Date()).getTime() / 1000;
-lua_core["os"]["clock"] = function () {
-  // This function is supposed to return the time the script has been executing
-  // not the time since it started, but I don't know of a way to do this.
-  return [(((new Date()).getTime()) / 1000) - clock_start];
-};
-lua_core["os"]["date"] = function (format, time) {
-  return ["[" + time + "]" + format];
-};
-lua_core["os"]["difftime"] = function (t2, t1) {
-  return [t2 - t1];
-};
-lua_core["os"]["execute"] = function () {
-  return 0;// all commands fail
-};
-lua_core["os"]["exit"] = function () {
-  //window.close();
-};
-lua_core["os"]["getenv"] = function (varname) {
-  return [null];
-};
-lua_core["os"]["remove"] = lua_core["os"]["rename"] = lua_core["os"]["setlocale"] = function () {
-  not_supported();
-};
-lua_core["os"]["time"] = function () {
-  // TODO
-  not_supported();
+lua_core["os"] = {
+  "clock": function () {
+    // This function is supposed to return the time the script has been executing
+    // not the time since it started, but I don't know of a way to do this.
+    return [(((new Date()).getTime()) / 1000) - clock_start];
+  },
+  "date": function (format, time) {
+    return ["[" + time + "]" + format];
+  },
+  "difftime": function (t2, t1) {
+    return [t2 - t1];
+  },
+  "execute": function () {
+    return 0;// all commands fail
+  },
+  "exit": function () {
+    //window.close();
+  },
+  "getenv": function (varname) {
+    return [null];
+  },
+  "remove": function () {
+    not_supported();
+  },
+  "rename": function () {
+    not_supported();
+  },
+  "setlocale": function () {
+    not_supported();
+  },
+  "time": function () {
+    // TODO
+    not_supported();
+  }
 };
 
 // package
@@ -898,232 +909,237 @@ function lua_require(G, name) {
   lua_tableset(pkg, names[names.length - 1], t);
   return t;
 }
-lua_core["package"] = {};
-lua_core["package"]["path"] = "";
-lua_core["package"]["cpath"] = "";
-lua_core["package"]["loaded"] = lua_packages;
-lua_core["package"]["loaders"] = lua_newtable();// not used
-lua_core["package"]["preload"] = lua_newtable();// not used
-lua_core["package"]["loadlib"] = function () {
-  not_supported();
+lua_core["package"] = {
+  "path": "",
+  "cpath": "",
+  "loaded": lua_packages,
+  "loaders": lua_newtable(),// not used
+  "preload": lua_newtable(),// not used
+  "loadlib": function () {
+    not_supported();
+  }
 };
 
 // string
-lua_core["string"] = {};
-lua_core["string"]["byte"] = function (s, i, j) {
-  if (i == null) {
-    i = 0;
-  }
-  if (j == null) {
-    j = i;
-  }
-  var result = [];
-  while (i < j && i < s.length) {
-    result.push(s.charCodeAt(i));
-  }
-  return result;
-};
-lua_core["string"]["char"] = function () {
-  return [String.fromCharCode.apply(null, arguments)];
-};
-lua_core["string"]["dump"] = function (func) {
-  not_supported();
-};
-lua_core["string"]["find"] = function () {
-  // TODO
-  not_supported();
-};
-lua_core["string"]["format"] = function (formatstring) {
-  // TODO: Finish implementation
-  return ["[" + slice(arguments, 1).join(", ") + "]" + arguments[0]];
-};
-lua_core["string"]["gmatch"] = function (s, pattern) {
-  // TODO
-  not_supported();
-};
-lua_core["string"]["gsub"] = function (s, pattern, repl, n) {
-  // TODO
-  not_supported();
-};
-lua_core["string"]["len"] = function (s) {
-  if (typeof s == "string") {
-    return [s.length];
-  } else {
-    throw new Error("Input not string");
-  }
-};
-lua_core["string"]["lower"] = function (s) {
-  if (typeof s == "string") {
-    return [s.toLowerCase()];
-  } else {
-    throw new Error("Input not string");
-  }
-};
-lua_core["string"]["match"] = function (s) {
-  // TODO
-  not_supported();
-};
-lua_core["string"]["rep"] = function (s, n) {
-  if (typeof s == "string" && typeof n == "number") {
-    var result = [];
-    while (n-- > 0) {
-      result.push(s);
+lua_core["string"] = {
+  "byte": function (s, i, j) {
+    if (i == null) {
+      i = 0;
     }
-    return [result.join("")];
-  } else {
-    throw new Error("Input not string and number");
-  }
-};
-lua_core["string"]["reverse"] = function (s) {
-  if (typeof s == "string") {
-    return [s.split("").reverse().join("")];
-  } else {
-    throw new Error("Input not string");
-  }
-};
-lua_core["string"]["sub"] = function (s, i, j) {
-  if (i < 0) {
-    i = s.length + 1 - i;
-  }
-  if (j == null) {
-    return [s.substring(i)];
-  } else if (j < 0) {
-    j = s.length + 1 - j;
-  }
-  return [s.substring(i, j)];
-};
-lua_core["string"]["upper"] = function (s) {
-  if (typeof s == "string") {
-    return [s.toUpperCase()];
-  } else {
-    throw new Error("Input not string");
+    if (j == null) {
+      j = i;
+    }
+    var result = [];
+    while (i < j && i < s.length) {
+      result.push(s.charCodeAt(i));
+    }
+    return result;
+  },
+  "char": function () {
+    return [String.fromCharCode.apply(null, arguments)];
+  },
+  "dump": function (func) {
+    not_supported();
+  },
+  "find": function () {
+    // TODO
+    not_supported();
+  },
+  "format": function (formatstring) {
+    // TODO: Finish implementation
+    return ["[" + slice(arguments, 1).join(", ") + "]" + arguments[0]];
+  },
+  "gmatch": function (s, pattern) {
+    // TODO
+    not_supported();
+  },
+  "gsub": function (s, pattern, repl, n) {
+    // TODO
+    not_supported();
+  },
+  "len": function (s) {
+    if (typeof s == "string") {
+      return [s.length];
+    } else {
+      throw new Error("Input not string");
+    }
+  },
+  "lower": function (s) {
+    if (typeof s == "string") {
+      return [s.toLowerCase()];
+    } else {
+      throw new Error("Input not string");
+    }
+  },
+  "match": function (s) {
+    // TODO
+    not_supported();
+  },
+  "rep": function (s, n) {
+    if (typeof s == "string" && typeof n == "number") {
+      var result = [];
+      while (n-- > 0) {
+        result.push(s);
+      }
+      return [result.join("")];
+    } else {
+      throw new Error("Input not string and number");
+    }
+  },
+  "reverse": function (s) {
+    if (typeof s == "string") {
+      return [s.split("").reverse().join("")];
+    } else {
+      throw new Error("Input not string");
+    }
+  },
+  "sub": function (s, i, j) {
+    if (i < 0) {
+      i = s.length + 1 - i;
+    }
+    if (j == null) {
+      return [s.substring(i)];
+    } else if (j < 0) {
+      j = s.length + 1 - j;
+    }
+    return [s.substring(i, j)];
+  },
+  "upper": function (s) {
+    if (typeof s == "string") {
+      return [s.toUpperCase()];
+    } else {
+      throw new Error("Input not string");
+    }
   }
 };
 
-lua_core["table"] = {};
-lua_core["table"]["concat"] = function (table, sep, i, j) {
-  // TODO
-  not_supported();
-};
-lua_core["table"]["insert"] = function (table, pos, value) {
-  ensure_arraymode(table);
-  if (arguments.length == 2) {
-    value = pos;
-    pos = table.uints.length + 1;
-  }
-  table.uints.splice(pos - 1, 0, value);
-  if (table.length != null) {
-    table.length++;
-  }
-  return [];
-};
-lua_core["table"]["maxn"] = function (table) {
-  if (table.arraymode) {
-    return [table.uints.length];
-  } else {
-    var max = 0;
-    for (var i in table.uints) {
-      var val = parseFloat(i);
-      if (val > max) {
-        max = val;
-      }
-    }
-    return [max];
-  }
-};
-// TODO: This will probably mess up if pos is not valid
-lua_core["table"]["remove"] = function (table, pos) {
-  ensure_arraymode(table);
-  var value = table.uints[pos - 1];
-  table.uints.splice(pos - 1, 1);
-  if (table.length != null) {
-    table.length--;
-  }
-  return [value];
-};
+// table
 function _defaultsort(a, b) {
   return [lua_lt(a, b)];
 }
-lua_core["table"]["sort"] = function (table, comp) {
-  if (!comp) {
-    comp = _defaultsort;
+lua_core["table"] = {
+  "concat": function (table, sep, i, j) {
+    // TODO
+    not_supported();
+  },
+  "insert": function (table, pos, value) {
+    ensure_arraymode(table);
+    if (arguments.length == 2) {
+      value = pos;
+      pos = table.uints.length + 1;
+    }
+    table.uints.splice(pos - 1, 0, value);
+    if (table.length != null) {
+      table.length++;
+    }
+    return [];
+  },
+  "maxn": function (table) {
+    if (table.arraymode) {
+      return [table.uints.length];
+    } else {
+      var max = 0;
+      for (var i in table.uints) {
+        var val = parseFloat(i);
+        if (val > max) {
+          max = val;
+        }
+      }
+      return [max];
+    }
+  },
+  "remove": function (table, pos) {
+    // TODO: This will probably mess up if pos is not valid
+    ensure_arraymode(table);
+    var value = table.uints[pos - 1];
+    table.uints.splice(pos - 1, 1);
+    if (table.length != null) {
+      table.length--;
+    }
+    return [value];
+  },
+  "sort": function (table, comp) {
+    if (!comp) {
+      comp = _defaultsort;
+    }
+    ensure_arraymode(table)
+    table.uints.sort(function (a, b) {
+      return comp(a, b)[0] ? -1 : 1;
+    });
+    return [];
   }
-  ensure_arraymode(table)
-  table.uints.sort(function (a, b) {
-    return comp(a, b)[0] ? -1 : 1;
-  });
-  return [];
 };
 
-// based on BitOp <http://bitop.luajit.org/>
-lua_core["bit"] = {}
-lua_core["bit"]["tobit"] = function (x) {
-  return [x << 0]
-}
-lua_core["bit"]["tohex"] = function (x, n) {
-  if (n > 0) {
-    var str = x.toString(16).substr(-n);
-    while (str.length < n) {
-      str = "0" + str;
+// bit (based on BitOp <http://bitop.luajit.org/>)
+lua_core["bit"] = {
+  "tobit": function (x) {
+    return [x << 0]
+  },
+  "tohex": function (x, n) {
+    if (n > 0) {
+      var str = x.toString(16).substr(-n);
+      while (str.length < n) {
+        str = "0" + str;
+      }
+      return [str];
+    } else if (n < 0) {
+      var str = x.toString(16).substr(n).toUpperCase();
+      while (str.length < -n) {
+        str = "0" + str;
+      }
+      return [str];
+    } else {
+      return [x.toString(16)]
     }
-    return [str];
-  } else if (n < 0) {
-    var str = x.toString(16).substr(n).toUpperCase();
-    while (str.length < -n) {
-      str = "0" + str;
+  },
+  "bnot": function (x) {
+    return [~x];
+  },
+  "bor": function () {
+    var result = 0;
+    for (var i = 0; i < arguments.length; i++) {
+      result |= arguments[i];
     }
-    return [str];
-  } else {
-    return [x.toString(16)]
+    return [result];
+  },
+  "band": function (x) {
+    var result = 0;
+    for (var i = 0; i < arguments.length; i++) {
+      result &= arguments[i];
+    }
+    return [result];
+  },
+  "bxor": function (x) {
+    var result = 0;
+    for (var i = 0; i < arguments.length; i++) {
+      result ^= arguments[i];
+    }
+    return [result];
+  },
+  "lshift": function (x, n) {
+    return [x << n];
+  },
+  "rshift": function (x, n) {
+    return [x >>> n];
+  },
+  "arshift": function (x, n) {
+    return [x >> n];
+  },
+  "rol": function (x, n) {
+    n &= 0xf;
+    return [(x << n) | (x >>> -n)];
+  },
+  "ror": function (x, n) {
+    n &= 0xf;
+    return [(x >>> n) | (x << -n)];
+  },
+  "bswap": function (x) {
+    // from Bit Twiddling hacks <http://graphics.stanford.edu/~seander/bithacks.html>
+    x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
+    x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
+    x = ((x >> 4) & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);
+    x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
+    x = (x >> 16) | (x << 16);
+    return [x];
   }
-}
-lua_core["bit"]["bnot"] = function (x) {
-  return [~x];
-}
-lua_core["bit"]["bor"] = function () {
-  var result = 0;
-  for (var i = 0; i < arguments.length; i++) {
-    result |= arguments[i];
-  }
-  return [result];
-}
-lua_core["bit"]["band"] = function (x) {
-  var result = 0;
-  for (var i = 0; i < arguments.length; i++) {
-    result &= arguments[i];
-  }
-  return [result];
-}
-lua_core["bit"]["bxor"] = function (x) {
-  var result = 0;
-  for (var i = 0; i < arguments.length; i++) {
-    result ^= arguments[i];
-  }
-  return [result];
-}
-lua_core["bit"]["lshift"] = function (x, n) {
-  return [x << n];
-}
-lua_core["bit"]["rshift"] = function (x, n) {
-  return [x >>> n];
-}
-lua_core["bit"]["arshift"] = function (x, n) {
-  return [x >> n];
-}
-lua_core["bit"]["rol"] = function (x, n) {
-  n &= 0xf;
-  return [(x << n) | (x >>> -n)];
-}
-lua_core["bit"]["ror"] = function (x, n) {
-  n &= 0xf;
-  return [(x >>> n) | (x << -n)];
-}
-lua_core["bit"]["bswap"] = function (x) {
-  // from Bit Twiddling hacks <http://graphics.stanford.edu/~seander/bithacks.html>
-  x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
-  x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
-  x = ((x >> 4) & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);
-  x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
-  x = (x >> 16) | (x << 16);
-  return [x];
-}
+};
