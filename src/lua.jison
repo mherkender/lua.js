@@ -406,7 +406,12 @@ exp
     };
   }
   | "-" exp { $$ = {single: $2.is_number ? ('-' + $2.single) : ('lua_unm(' + $2.single + ')')}; }
-  | NOT exp { $$ = {single: 'lua_not(' + $2.single + ')'}; }
+  | NOT exp {
+    $$ = {
+      single: 'lua_not(' + $2.single + ')',
+      simple_form: 'lua_not(' + $2.single + ')'
+    };
+  }
   | "#" exp { $$ = {single: 'lua_len(' + $2.single + ')'}; }
   | "..." { $$ = {single: 'varargs[0]', multi: 'varargs'}; }
   ;
