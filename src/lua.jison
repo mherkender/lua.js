@@ -193,7 +193,7 @@ prefixexp
     }
   }
   | functioncall { $$ = {single: $1 + "[0]", multi: $1}; }
-  | "(" exp ")" { $$ = {single: "(" + $2.single + ")"}; }
+  | "(" exp ")" { $$ = {single: "(" + $2.single + ")", simple_form: $2.simple_form}; }
   ;
 
 statlist
@@ -255,10 +255,10 @@ stat
   | LOCAL namelist { $$ = "var " + $2.join(", ") + ";"; }
   | functioncall { $$ = $1 + ";"; }
   | DO block END { $$ = "/* do */\n" + $2 + "\n/* end */"; }
-  | WHILE exp DO loopblock END { $$ = "while (lua_true(" + $2.single + ")) " + $4; }
-  | REPEAT loopblock UNTIL exp { $$ = "do " + $2 + " while (lua_true(" + $4.single + "));"; }
-  | IF exp THEN block END { $$ = "if (lua_true(" + $2.single + ")) {\n" + $4 + "\n}"; }
-  | IF exp THEN block elseif END { $$ = "if (lua_true(" + $2.single + ")) {\n" + $4 + "\n} " + $5; }
+  | WHILE exp DO loopblock END { $$ = "while (" + getIfExp($2) + ") " + $4; }
+  | REPEAT loopblock UNTIL exp { $$ = "do " + $2 + " while (" + getIfExp($4) + ");"; }
+  | IF exp THEN block END { $$ = "if (" + getIfExp($2) + ") {\n" + $4 + "\n}"; }
+  | IF exp THEN block elseif END { $$ = "if (" + getIfExp($2) + ") {\n" + $4 + "\n} " + $5; }
   | FOR indent namelist "=" exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
@@ -328,12 +328,12 @@ laststat
 
 elseif
   : ELSEIF exp THEN block {
-    $$ = "else if (lua_true(" + $2.single + ")) {\n" +
+    $$ = "else if (" + getIfExp($2) + ") {\n" +
       $4 + "\n" +
       "}";
   }
   | ELSEIF exp THEN block elseif {
-    $$ = "else if (lua_true(" + $2.single + ")) {\n" +
+    $$ = "else if (" + getIfExp($2) + ") {\n" +
       $4 + "\n" +
       "} " + $5;
   }
@@ -393,8 +393,18 @@ exp
   | exp ">=" exp { $$ = {single: 'lua_lte(' + $3.single + ', ' + $1.single + ')'}; }
   | exp "==" exp { $$ = {single: 'lua_eq(' + $1.single + ', ' + $3.single + ')'}; }
   | exp "~=" exp { $$ = {single: '!lua_eq(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp AND exp { $$ = {single: 'lua_and(' + $1.single + ', function () {return ' + $3.single + ';})'}; }
-  | exp OR exp { $$ = {single: 'lua_or(' + $1.single + ', function () {return ' + $3.single + ';})'}; }
+  | exp AND exp {
+    $$ = {
+      single: 'lua_and(' + $1.single + ', function () {return ' + $3.single + ';})',
+      simple_form: '(' + getIfExp($1) + ' && ' + getIfExp($3) + ')'
+    };
+  }
+  | exp OR exp {
+    $$ = {
+      single: 'lua_or(' + $1.single + ', function () {return ' + $3.single + ';})',
+      simple_form: '(' + getIfExp($1) + ' || ' + getIfExp($3) + ')'
+    };
+  }
   | "-" exp { $$ = {single: 'lua_unm(' + $2.single + ')'}; }
   | NOT exp { $$ = {single: 'lua_not(' + $2.single + ')'}; }
   | "#" exp { $$ = {single: 'lua_len(' + $2.single + ')'}; }
@@ -531,4 +541,8 @@ function createFunction(args, body, hasVarargs) {
       body + "\n" +
       "  /*return []*/\n") +
     "})";
+}
+
+function getIfExp(exp) {
+  return exp.simple_form || "lua_true(" + exp.single + ")";
 }
