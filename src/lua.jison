@@ -370,7 +370,7 @@ funcname
   ;
 
 exp
-  : NUMBER { $$ = {single: $1}; }
+  : NUMBER { $$ = {single: $1, is_number: true}; }
   | STRING { $$ = {single: $1}; }
   | TRUE { $$ = {single: 'true'}; }
   | FALSE { $$ = {single: 'false'}; }
@@ -405,7 +405,7 @@ exp
       simple_form: '(' + getIfExp($1) + ' || ' + getIfExp($3) + ')'
     };
   }
-  | "-" exp { $$ = {single: 'lua_unm(' + $2.single + ')'}; }
+  | "-" exp { $$ = {single: $2.is_number ? ('-' + $2.single) : ('lua_unm(' + $2.single + ')')}; }
   | NOT exp { $$ = {single: 'lua_not(' + $2.single + ')'}; }
   | "#" exp { $$ = {single: 'lua_len(' + $2.single + ')'}; }
   | "..." { $$ = {single: 'varargs[0]', multi: 'varargs'}; }
