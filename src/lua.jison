@@ -96,18 +96,12 @@
 script
   : indent chunk unindent EOF {
     return "var tmp;\n" +
-      "var _G = lua_newtable(null, 'arg', lua_newtable());\n" +
-      "_G.str['_G'] = _G;\n" +
-      "for (var i in lua_core) {\n" +
-      "  if (typeof lua_core[i] == 'object') {\n" +
-      "    _G.str[i] = lua_newtable();\n" +
-      "    for (var j in lua_core[i]) {\n" +
-      "      _G.str[i].str[j] = lua_core[i][j];\n" +
-      "    }\n" +
-      "  } else {\n" +
-      "    _G.str[i] = lua_core[i];\n" +
-      "  }\n" +
+      "var _G = lua_newtable2(lua_core);\n" +
+      "for (var i in lua_libs) {\n" +
+      "  _G.str[i] = lua_newtable2(lua_libs[i]);\n" +
       "}\n" +
+      "_G.str['arg'] = lua_newtable();\n" +
+      "_G.str['_G'] = _G;\n" +
       "_G.str['module'] = function (name) {\n" +
       "  lua_createmodule(_G, name, slice(arguments, 1));\n" +
       "};\n" +

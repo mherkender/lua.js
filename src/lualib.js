@@ -119,6 +119,13 @@ function lua_newtable(autoIndexList) {
   }
   return result;
 }
+function lua_newtable2(str) {
+  var str_copy = {};
+  for (var i in str) {
+    str_copy[i] = str[i];
+  }
+  return {str: str_copy, uints: {}, floats: {}, bool: {}};
+}
 function lua_len(op) {
   if (typeof op == "string") {
     return op.length;
@@ -469,6 +476,7 @@ function _ipairs_next(table, index) {
   }
   return [index + 1, entry];
 }
+var lua_libs = {};
 var lua_core = {
   "assert": function (value, message) {
     if (arguments.length < 1) {
@@ -680,24 +688,24 @@ var lua_core = {
 };
 
 // coroutine
-lua_core["coroutine"] = {};
-lua_core["coroutine"]["resume"] = lua_core["coroutine"]["running"] = lua_core["coroutine.status"] = lua_core["coroutine"]["wrap"] = lua_core["coroutine"]["yield"] = lua_core["coroutine"]["create"] = function () {
+var _coroutine = lua_libs["coroutine"] = {};
+_coroutine["resume"] = _coroutine["running"] = _coroutine["status"] = _coroutine["wrap"] = _coroutine["yield"] = _coroutine["create"] = function () {
   not_supported();
 };
 
 // debug
-lua_core["debug"] = {
+var _debug = lua_libs["debug"] = {
   "getmetatable": function (obj) {
     return [obj.metatable];
   }
 };
-lua_core["debug"]["traceback"] = lua_core["debug"]["getfenv"] = lua_core["debug"]["gethook"] = lua_core["debug"]["getinfo"] = lua_core["debug"]["getlocal"] = lua_core["debug"]["getregistry"] = lua_core["debug"]["getupvalue"] = lua_core["debug"]["setfenv"] = lua_core["debug"]["sethook"] = lua_core["debug"]["setlocal"] = lua_core["debug"]["setupvalue"] = lua_core["debug"]["debug"] = function () {
+_debug["traceback"] = _debug["getfenv"] = _debug["gethook"] = _debug["getinfo"] = _debug["getlocal"] = _debug["getregistry"] = _debug["getupvalue"] = _debug["setfenv"] = _debug["sethook"] = _debug["setlocal"] = _debug["setupvalue"] = _debug["debug"] = function () {
   not_supported();
 };
 
 // io
 var lua_write_buffer = "";
-lua_core["io"] = {
+var _io = lua_libs["io"] = {
   "write": function () {
     lua_write_buffer += Array.prototype.join.call(arguments, "");
     var lines = lua_write_buffer.split("\n");
@@ -712,14 +720,14 @@ lua_core["io"] = {
   "stdin": null,
   "stdout": null
 };
-lua_core["io"]["close"] = lua_core["io"]["input"] = lua_core["io"]["lines"] = lua_core["io"]["output"] = lua_core["io"]["popen"] = lua_core["io"]["read"] = lua_core["io"]["tmpfile"] = lua_core["io"]["type"] = lua_core["io"]["open"] = function () {
+_io["close"] = _io["input"] = _io["lines"] = _io["output"] = _io["popen"] = _io["read"] = _io["tmpfile"] = _io["type"] = _io["open"] = function () {
   not_supported();
 };
 
 // math
 var max = 0x100000000;
 var seed = (Math.random() * max) & (max - 1);
-lua_core["math"] = {
+lua_libs["math"] = {
   "abs": function (x) {
     return [Math.abs(x)];
   },
@@ -839,7 +847,7 @@ lua_core["math"] = {
 // os
 // TODO: this should be different for each script, I think?
 var clock_start = (new Date()).getTime() / 1000;
-lua_core["os"] = {
+lua_libs["os"] = {
   "clock": function () {
     // This function is supposed to return the time the script has been executing
     // not the time since it started, but I don't know of a way to do this.
@@ -913,7 +921,7 @@ function lua_require(G, name) {
   lua_tableset(pkg, names[names.length - 1], t);
   return t;
 }
-lua_core["package"] = {
+lua_libs["package"] = {
   "path": "",
   "cpath": "",
   "loaded": lua_packages,
@@ -925,7 +933,7 @@ lua_core["package"] = {
 };
 
 // string
-lua_core["string"] = {
+lua_libs["string"] = {
   "byte": function (s, i, j) {
     if (i == null) {
       i = 0;
@@ -1018,7 +1026,7 @@ lua_core["string"] = {
 };
 
 // table
-lua_core["table"] = {
+lua_libs["table"] = {
   "concat": function (table, sep, i, j) {
     // TODO
     not_supported();
@@ -1075,7 +1083,7 @@ lua_core["table"] = {
 };
 
 // bit (based on BitOp <http://bitop.luajit.org/>)
-lua_core["bit"] = {
+lua_libs["bit"] = {
   "tobit": function (x) {
     return [x << 0]
   },
