@@ -1018,9 +1018,6 @@ lua_core["string"] = {
 };
 
 // table
-function _defaultsort(a, b) {
-  return [lua_lt(a, b)];
-}
 lua_core["table"] = {
   "concat": function (table, sep, i, j) {
     // TODO
@@ -1063,13 +1060,16 @@ lua_core["table"] = {
     return [value];
   },
   "sort": function (table, comp) {
-    if (!comp) {
-      comp = _defaultsort;
-    }
     ensure_arraymode(table)
-    table.uints.sort(function (a, b) {
-      return comp(a, b)[0] ? -1 : 1;
-    });
+    if (comp) {
+      table.uints.sort(function (a, b) {
+        return comp(a, b)[0] ? -1 : 1;
+      });
+    } else {
+      table.uints.sort(function (a, b) {
+        return lua_lt(a, b) ? -1 : 1;
+      });
+    }
     return [];
   }
 };
