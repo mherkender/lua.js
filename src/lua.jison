@@ -366,10 +366,10 @@ funcname
 exp
   : NUMBER { $$ = {single: $1, is_number: true}; }
   | STRING { $$ = {single: $1}; }
-  | TRUE { $$ = {single: 'true'}; }
-  | FALSE { $$ = {single: 'false'}; }
+  | TRUE { $$ = {single: 'true', simple_form: 'true'}; }
+  | FALSE { $$ = {single: 'false', simple_form: 'false'}; }
   | tableconstructor { $$ = {single: $1}; }
-  | NIL { $$ = {single: 'null'}; }
+  | NIL { $$ = {single: 'null', simple_form: 'null'}; }
   | prefixexp { $$ = $1; }
   | FUNCTION funcbody {
     $$ = {single: $2};
@@ -381,12 +381,42 @@ exp
   | exp "^" exp { $$ = {single: 'lua_power(' + $1.single + ', ' + $3.single + ')'}; }
   | exp "%" exp { $$ = {single: 'lua_mod(' + $1.single + ', ' + $3.single + ')'}; }
   | exp ".." exp { $$ = {single: 'lua_concat(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "<" exp { $$ = {single: 'lua_lt(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp ">" exp { $$ = {single: 'lua_lt(' + $3.single + ', ' + $1.single + ')'}; }
-  | exp "<=" exp { $$ = {single: 'lua_lte(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp ">=" exp { $$ = {single: 'lua_lte(' + $3.single + ', ' + $1.single + ')'}; }
-  | exp "==" exp { $$ = {single: 'lua_eq(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "~=" exp { $$ = {single: '!lua_eq(' + $1.single + ', ' + $3.single + ')'}; }
+  | exp "<" exp {
+    $$ = {
+      single: 'lua_lt(' + $1.single + ', ' + $3.single + ')',
+      simple_form: 'lua_lt(' + $1.single + ', ' + $3.single + ')'
+    };
+  }
+  | exp ">" exp {
+    $$ = {
+      single: 'lua_lt(' + $3.single + ', ' + $1.single + ')',
+      simple_form: 'lua_lt(' + $3.single + ', ' + $1.single + ')'
+    };
+  }
+  | exp "<=" exp {
+    $$ = {
+      single: 'lua_lte(' + $1.single + ', ' + $3.single + ')',
+      simple_form: 'lua_lte(' + $1.single + ', ' + $3.single + ')'
+    };
+  }
+  | exp ">=" exp {
+    $$ = {
+      single: 'lua_lte(' + $3.single + ', ' + $1.single + ')',
+      simple_form: 'lua_lte(' + $3.single + ', ' + $1.single + ')'
+    };
+  }
+  | exp "==" exp {
+    $$ = {
+      single: 'lua_eq(' + $1.single + ', ' + $3.single + ')',
+      simple_form: 'lua_eq(' + $1.single + ', ' + $3.single + ')'
+    };
+  }
+  | exp "~=" exp {
+    $$ = {
+      single: '!lua_eq(' + $1.single + ', ' + $3.single + ')',
+      simple_form: '!lua_eq(' + $1.single + ', ' + $3.single + ')'
+    };
+  }
   | exp AND exp {
     $$ = {
       single: 'lua_and(' + $1.single + ', function () {return ' + $3.single + ';})',
