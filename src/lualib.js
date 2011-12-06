@@ -193,7 +193,7 @@ function lua_eq(op1, op2) {
   }
   var h = (op1.metatable && op1.metatable.str["__eq"]) || (op2.metatable && op2.metatable.str["__eq"]);
   if (h) {
-    return lua_rawcall(h, [op1, op2])[0];
+    return lua_true(lua_rawcall(h, [op1, op2])[0]);
   } else {
     return false;
   }
@@ -207,7 +207,7 @@ function lua_lt(op1, op2) {
   } else {
     var h = (op1.metatable && op1.metatable.str["__lt"]) || (op2.metatable && op2.metatable.str["__lt"]);
     if (h) {
-      return lua_rawcall(h, [op1, op2])[0];
+      return lua_true(lua_rawcall(h, [op1, op2])[0]);
     } else {
       throw new Error("Unable to compare " + op1 + " and " + op2);
     }
@@ -222,11 +222,11 @@ function lua_lte(op1, op2) {
   } else {
     var h = (op1.metatable && op1.metatable.str["__le"]) || (op2.metatable && op2.metatable.str["__le"]);
     if (h) {
-      return lua_rawcall(h, [op1, op2])[0];
+      return lua_true(lua_rawcall(h, [op1, op2])[0]);
     } else {
       var h = (op1.metatable && op1.metatable.str["__lt"]) || (op2.metatable && op2.metatable.str["__lt"]);
       if (h) {
-        return !lua_rawcall(h, [op2, op1])[0];
+        return lua_not(lua_rawcall(h, [op2, op1])[0]);
       } else {
         throw new Error("Unable to compare " + op1 + " and " + op2);
       }
