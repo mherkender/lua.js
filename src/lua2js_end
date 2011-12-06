@@ -7,7 +7,7 @@ if (process.argv.length != 4) {
 var source = fs.readFileSync(process.argv[2], 'utf8');
 var script = "var lua_script = (function() {\n" +
   "  " + lua_parser.parse(source).split("\n").join("\n  ") +
-  "  return _G;\n" +
+  "return _G;\n" +
   "})();\n"
 
 fs.writeFile(process.argv[3], script, function (err) {
