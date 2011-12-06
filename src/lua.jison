@@ -96,23 +96,23 @@
 script
   : indent chunk unindent EOF {
     return "var tmp;\n" +
-      "var _G = lua_newtable2(lua_core);\n" +
+      "var G = lua_newtable2(lua_core);\n" +
       "for (var i in lua_libs) {\n" +
-      "  _G.str[i] = lua_newtable2(lua_libs[i]);\n" +
+      "  G.str[i] = lua_newtable2(lua_libs[i]);\n" +
       "}\n" +
-      "_G.str['arg'] = lua_newtable();\n" +
-      "_G.str['_G'] = _G;\n" +
-      "_G.str['module'] = function (name) {\n" +
-      "  lua_createmodule(_G, name, slice(arguments, 1));\n" +
+      "G.str['arg'] = lua_newtable();\n" +
+      "G.str['_G'] = G;\n" +
+      "G.str['module'] = function (name) {\n" +
+      "  lua_createmodule(G, name, slice(arguments, 1));\n" +
       "};\n" +
-      "_G.str['require'] = function (name) {\n" +
-      "  lua_require(_G, name);\n" +
+      "G.str['require'] = function (name) {\n" +
+      "  lua_require(G, name);\n" +
       "};\n" +
-      "_G.str['package'].str['seeall'] = function (module) {\n" +
+      "G.str['package'].str['seeall'] = function (module) {\n" +
       "  if (!module.metatable) {\n" +
       "    module.metatable = lua_newtable();\n" +
       "  }\n" +
-      "  module.metatable.str['__index'] = _G;\n" +
+      "  module.metatable.str['__index'] = G;\n" +
       "};\n" +
       "{\n" +
       cleanupLastStatements($2) + "\n" +
@@ -292,14 +292,14 @@ stat
     }
   }
   | FUNCTION funcname funcbody {
-    $$ = "_G";
+    $$ = "G";
     for (var i = 0; i < $2.length; i++) {
       $$ += ".str['" + $2[i] + "']";
     }
     $$ += " = " + $3 + ";";
   }
   | FUNCTION funcname ":" NAME mfuncbody {
-    $$ = "_G";
+    $$ = "G";
     for (var i = 0; i < $2.length; i++) {
       $$ += ".str['" + $2[i] + "']";
     }
@@ -472,7 +472,7 @@ addself
   ;
 
 var
-  : NAME { $$ = {prefixexp: getLocal($1, "_G.str['" + $1 + "']")}; }
+  : NAME { $$ = {prefixexp: getLocal($1, "G.str['" + $1 + "']")}; }
   | prefixexp "[" exp "]" { $$ = {prefixexp: $1.single, access: $3.single}; }
   | prefixexp "." NAME { $$ = {prefixexp: $1.single, access: "'" + $3 + "'"}; }
   ;
