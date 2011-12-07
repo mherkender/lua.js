@@ -248,7 +248,7 @@ stat
   }
   | LOCAL namelist { $$ = "var " + $2.join(", ") + ";"; }
   | functioncall { $$ = $1 + ";"; }
-  | DO block END { $$ = "/* do */\n" + $2 + "\n/* end */"; }
+  | DO block END { $$ = "// do\n" + $2 + "\n// end"; }
   | WHILE exp DO loopblock END { $$ = "while (" + getIfExp($2) + ") " + $4; }
   | REPEAT loopblock UNTIL exp { $$ = "do " + $2 + " while (" + getIfExp($4) + ");"; }
   | IF exp THEN block END { $$ = "if (" + getIfExp($2) + ") {\n" + $4 + "\n}"; }
