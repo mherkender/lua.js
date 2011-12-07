@@ -191,8 +191,8 @@ function lua_eq(op1, op2) {
   if (op1 == null || op2 == null) {
     return false;
   }
-  var h = (op1.metatable && op1.metatable.str["__eq"]) || (op2.metatable && op2.metatable.str["__eq"]);
-  if (h) {
+  var h = op1.metatable && op1.metatable.str["__eq"];
+  if (h && h == (op2.metatable && op2.metatable.str["__eq"])) {
     return lua_true(lua_rawcall(h, [op1, op2])[0]);
   } else {
     return false;
@@ -205,8 +205,8 @@ function lua_lt(op1, op2) {
     // TODO: not sure how similar lua/javascript string comparison is
     return op1 < op2;
   } else {
-    var h = (op1.metatable && op1.metatable.str["__lt"]) || (op2.metatable && op2.metatable.str["__lt"]);
-    if (h) {
+    var h = op1.metatable && op1.metatable.str["__lt"];
+    if (h && h == (op2.metatable && op2.metatable.str["__lt"])) {
       return lua_true(lua_rawcall(h, [op1, op2])[0]);
     } else {
       throw new Error("Unable to compare " + op1 + " and " + op2);
@@ -220,12 +220,12 @@ function lua_lte(op1, op2) {
     // TODO: not sure how similar lua/javascript string comparison is
     return op1 <= op2;
   } else {
-    var h = (op1.metatable && op1.metatable.str["__le"]) || (op2.metatable && op2.metatable.str["__le"]);
-    if (h) {
+    var h = op1.metatable && op1.metatable.str["__le"];
+    if (h && h == (op2.metatable && op2.metatable.str["__le"])) {
       return lua_true(lua_rawcall(h, [op1, op2])[0]);
     } else {
-      var h = (op1.metatable && op1.metatable.str["__lt"]) || (op2.metatable && op2.metatable.str["__lt"]);
-      if (h) {
+      var h = op1.metatable && op1.metatable.str["__lt"];
+      if (h && h == (op2.metatable && op2.metatable.str["__lt"])) {
         return lua_not(lua_rawcall(h, [op2, op1])[0]);
       } else {
         throw new Error("Unable to compare " + op1 + " and " + op2);
