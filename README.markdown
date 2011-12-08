@@ -54,6 +54,7 @@ Known issues
 *   The parser isn't completely Lua compatible, and may reject valid Lua code in certain cases.
 *   Some Lua functions do not handle error conditions in the same way as standard Lua does.
 *   Nested comments (e.g. `--[=[ ]=]--`) are not supported
+*   `__mode` and `__gc` metamethods are not supported
 
 Some implementation details
 ---------------------------
