@@ -115,7 +115,7 @@ script
       "  module.metatable.str['__index'] = G;\n" +
       "};\n" +
       "{\n" +
-      cleanupLastStatements($2) + "\n" +
+      $2.simple_form + "\n" +
       "}\n";
   }
   ;
@@ -154,12 +154,11 @@ loopblock
     // by wrapping a loop block in a function call, we resolve these problems, but it
     // is only necessary for situations where functions are declared inside of a loop
 
-    if (/\/\/\ lua\ function$/gm.test($2)) {
-      $$ = "(function () {\n" +
-        cleanupLastStatements($2, true) + "\n" +
-        "})();";
+    if (functionBlockAdded) {
+      functionBlockAdded = false;
+      $$ = "(function () {\n" + ($2.varfix_form || $2.simple_form) + "\n" + "})();";
     } else {
-      $$ = "{\n" + $2 + "\n}";
+      $$ = "{\n" + $2.simple_form + "\n}";
     }
   }
   ;
@@ -171,10 +170,17 @@ semi
 
 chunk
   : statlist {
-    $$ = "  " + ($1 || "").split("\n").join("\n  ");
+    $$ = {simple_form: indentStatlist($1.simple_form)};
+    if ($1.varfix_form) {
+      $$.varfix_form = indentStatlist($1.varfix_form);
+    }
   }
   | statlist laststat {
-    $$ = "  " + (($1 ? $1 + "\n" : "") + $2).split("\n").join("\n  ");
+    $$ = {simple_form: indentStatlist($1.simple_form, $2.simple_form)};
+    if ($1.varfix_form || $2.varfix_form) {
+      $$.varfix_form = indentStatlist(
+        $1.varfix_form || $1.simple_form, $2.varfix_form || $2.simple_form);
+    }
   }
   ;
 
@@ -192,149 +198,204 @@ prefixexp
 
 statlist
   : stat semi statlist {
-    if ($3) {
-      $$ = $1 + "\n" + $3;
+    if ($3.simple_form) {
+      $$ = {simple_form: $1.simple_form + "\n" + $3.simple_form};
+      if ($1.varfix_form || $3.varfix_form) {
+        $$.varfix_form = ($1.varfix_form || $1.simple_form) + "\n" + ($3.varfix_form || $3.simple_form);
+      }
     } else {
       $$ = $1;
     }
   }
-  | { }
+  | { $$ = {simple_form: ""}; }
   ;
 
 stat
   : varlist "=" explist {
+    var tmp;
     if ($1.length == 1) {
       // avoid tmp entirely for certain situations
       if ($3.exps.length == 1) {
         if ($1[0].access) {
-          $$ = "lua_tableset(" + $1[0].prefixexp + ", " + $1[0].access + ", " + $3.exps[0] + ");";
+          tmp = "lua_tableset(" + $1[0].prefixexp + ", " + $1[0].access + ", " + $3.exps[0] + ");";
         } else {
-          $$ = $1[0].prefixexp + " = " + $3.exps[0] + ";";
+          tmp = $1[0].prefixexp + " = " + $3.exps[0] + ";";
         }
       } else {
         if ($1[0].access) {
-          $$ = "lua_tableset(" + $1[0].prefixexp + ", " + $1[0].access + ", " + getTempDecl($3) + "[0]);";
+          tmp = "lua_tableset(" + $1[0].prefixexp + ", " + $1[0].access + ", " + getTempDecl($3) + "[0]);";
         } else {
-          $$ = $1[0].prefixexp + " = " + getTempDecl($3) + "[0];";
+          tmp = $1[0].prefixexp + " = " + getTempDecl($3) + "[0];";
         }
       }
     } else {
-      $$ = "tmp = " + getTempDecl($3) + "; ";
+      tmp = "tmp = " + getTempDecl($3) + "; ";
       for (var i = 0; i < $1.length; i++) {
         if ($1[i].access) {
-          $$ += "lua_tableset(" + $1[i].prefixexp + ", " + $1[i].access + ", tmp[" + i + "]); ";
+          tmp += "lua_tableset(" + $1[i].prefixexp + ", " + $1[i].access + ", tmp[" + i + "]); ";
         } else {
-          $$ += $1[i].prefixexp + " = tmp[" + i + "]; ";
+          tmp += $1[i].prefixexp + " = tmp[" + i + "]; ";
         }
       }
-      $$ += "tmp = null;";
+      tmp += "tmp = null;";
     }
+    $$ = {simple_form: tmp};
   }
   | LOCAL namelist "=" explist {
+    var tmp;
     if ($2.length == 1) {
       // avoid tmp entirely for certain situations
       if ($4.exps.length == 1) {
-        $$ = "var " + $2[0] + " = " + $4.exps[0] + ";";
+        tmp = "var " + $2[0] + " = " + $4.exps[0] + ";";
       } else {
-        $$ = "var " + $2[0] + " = " + getTempDecl($4) + "[0];";
+        tmp = "var " + $2[0] + " = " + getTempDecl($4) + "[0];";
       }
     } else {
-      $$ = "tmp = " + getTempDecl($4) + "; ";
+      tmp = "tmp = " + getTempDecl($4) + "; ";
       for (var i = 0; i < $2.length; i++) {
-        $$ += "var " + $2[i] + " = tmp[" + i + "]; ";
+        tmp += "var " + $2[i] + " = tmp[" + i + "]; ";
       }
-      $$ += "tmp = null;";
+      tmp += "tmp = null;";
+    }
+    $$ = {simple_form: tmp};
+  }
+  | LOCAL namelist { $$ = {simple_form: "var " + $2.join(", ") + ";"}; }
+  | functioncall { $$ = {simple_form: $1 + ";"}; }
+  | DO block END {
+    $$ = {simple_form: "// do\n" + $2.simple_form + "\n// end"};
+    if ($2.varfix_form) {
+      $$.varfix_form = "// do\n" + $2.varfix_form + "\n// end";
     }
   }
-  | LOCAL namelist { $$ = "var " + $2.join(", ") + ";"; }
-  | functioncall { $$ = $1 + ";"; }
-  | DO block END { $$ = "// do\n" + $2 + "\n// end"; }
-  | WHILE exp DO loopblock END { $$ = "while (" + getIfExp($2) + ") " + $4; }
-  | REPEAT loopblock UNTIL exp { $$ = "do " + $2 + " while (" + getIfExp($4) + ");"; }
-  | IF exp THEN block END { $$ = "if (" + getIfExp($2) + ") {\n" + $4 + "\n}"; }
-  | IF exp THEN block elseif END { $$ = "if (" + getIfExp($2) + ") {\n" + $4 + "\n} " + $5; }
+  | WHILE exp DO loopblock END { $$ = {simple_form: "while (" + getIfExp($2) + ") " + $4}; }
+  | REPEAT loopblock UNTIL exp { $$ = {simple_form: "do " + $2 + " while (" + getIfExp($4) + ");"}; }
+  | IF exp THEN block END {
+    $$ = {simple_form: "if (" + getIfExp($2) + ") {\n" + $4.simple_form + "\n}"};
+    if ($4.varfix_form) {
+      $$.varfix_form = "if (" + getIfExp($2) + ") {\n" + $4.varfix_form + "\n}";
+    }
+  }
+  | IF exp THEN block elseif END {
+    $$ = {simple_form: "if (" + getIfExp($2) + ") {\n" + $4.simple_form + "\n} " + $5.simple_form};
+    if ($4.varfix_form || $5.varfix_form) {
+      $$.varfix_form = "if (" + getIfExp($2) + ") {\n" +
+        ($4.varfix_form || $4.simple_form) + "\n" + "} " + ($5.varfix_form || $5.simple_form);
+    }
+  }
   | FOR indent namelist "=" exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
-    $$ = "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
+    $$ = {simple_form: "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
       "stop_" + $2 + " = lua_assertfloat(" + $7.single + ");\n" +
-      "for (; " + $3[0] + " <= stop_" + $2 + "; " + $3[0] + "++) " + $9;
+      "for (; " + $3[0] + " <= stop_" + $2 + "; " + $3[0] + "++) " + $9};
   }
   | FOR indent namelist "=" exp "," exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
-    $$ = "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
+    $$ = {simple_form: "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
       "stop_" + $2 + " = lua_assertfloat(" + $7.single + "), " +
       "step_" + $2 + " = lua_assertfloat(" + $9.single + ");\n" +
-      "for (; step_" + $2 + " > 0 ? " + $3[0] + " <= stop_" + $2 + " : " + $3[0] + " >= stop_" + $2 + "; " + $3[0] + " += step_" + $2 + ") " + $11;
+      "for (; step_" + $2 + " > 0 ? " + $3[0] + " <= stop_" + $2 + " : " + $3[0] + " >= stop_" + $2 + "; " + $3[0] + " += step_" + $2 + ") " + $11};
   }
   | FOR indent namelist IN explist DO loopblock unindent END {
-    $$ = "var " + $3.join(", ") + ";\n" +
+    var tmp;
+    tmp = "var " + $3.join(", ") + ";\n" +
       "tmp = " + getTempDecl($5) + ";\n" +
       "var f_" + $2 + " = tmp[0], " +
       "s_" + $2 + " = tmp[1], " +
       "var_" + $2 + " = tmp[2];\n";
 
     if ($3.length == 1) {
-      $$ += "tmp = null;\n" +
+      tmp += "tmp = null;\n" +
         "while ((" + $3[0] + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) " + $7;
     } else {
-      $$ += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n" +
+      tmp += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n" +
         "  var_" + $2 + " = tmp[0];\n";
       for (var i = 0; i < $3.length; i++) {
-        $$ += "  " + $3[i] + " = tmp[" + i + "];\n";
+        tmp += "  " + $3[i] + " = tmp[" + i + "];\n";
       }
-      $$ += "  " + $7.split("\n").join("\n  ") + "\n" +
+      tmp += "  " + $7.split("\n").join("\n  ") + "\n" +
         "}\n" +
         "tmp = null;";
     }
+    $$ = {simple_form: tmp};
   }
   | FUNCTION funcname funcbody {
-    $$ = "G";
+    var tmp;
+    tmp = "G";
     for (var i = 0; i < $2.length; i++) {
-      $$ += ".str['" + $2[i] + "']";
+      tmp += ".str['" + $2[i] + "']";
     }
-    $$ += " = " + $3 + ";";
+    tmp += " = " + $3 + ";";
+    $$ = {simple_form: tmp};
   }
   | FUNCTION funcname ":" NAME mfuncbody {
-    $$ = "G";
+    var tmp;
+    tmp = "G";
     for (var i = 0; i < $2.length; i++) {
-      $$ += ".str['" + $2[i] + "']";
+      tmp += ".str['" + $2[i] + "']";
     }
-    $$ += ".str['" + $4 + "'] = " + $5 + ";";
+    tmp += ".str['" + $4 + "'] = " + $5 + ";";
+    $$ = {simple_form: tmp};
   }
   | LOCAL FUNCTION NAME funcbody {
-    $$ = "var " + getLocal($3) + " = " + $4 + ";";
+    $$ = {simple_form: "var " + getLocal($3) + " = " + $4 + ";"};
   }
   ;
 
 laststat
   : RETURN explist {
-    $$ = "/*return " + getTempDecl($2) + "*/";
+    $$ = {
+      simple_form: "return " + getTempDecl($2) + ";",
+      varfix_form: "throw new ReturnValues(" + getTempDecl($2) + ");"
+    };
   }
   | RETURN {
-    $$ = "/*return []*/";
+    $$ = {
+      simple_form: "return [];",
+      varfix_form: "throw new ReturnValues();"
+    };
   }
-  | BREAK { $$ = "/*break*/"; }
+  | BREAK {
+    $$ = {
+      simple_form: "break;",
+      varfix_form: "return;"
+    };
+  }
   ;
 
 elseif
   : ELSEIF exp THEN block {
-    $$ = "else if (" + getIfExp($2) + ") {\n" +
-      $4 + "\n" +
-      "}";
+    $$ = {simple_form: "else if (" + getIfExp($2) + ") {\n" +
+      $4.simple_form + "\n" +
+      "}"};
+    if ($4.varfix_form) {
+      $$.varfix_form = "else if (" + getIfExp($2) + ") {\n" +
+        $4.varfix_form + "\n" +
+        "}";
+    }
   }
   | ELSEIF exp THEN block elseif {
-    $$ = "else if (" + getIfExp($2) + ") {\n" +
-      $4 + "\n" +
-      "} " + $5;
+    $$ = {simple_form: "else if (" + getIfExp($2) + ") {\n" +
+      $4.simple_form + "\n" +
+      "} " + $5.simple_form};
+    if ($4.varfix_form || $5.varfix_form) {
+      $$.varfix_form = "else if (" + getIfExp($2) + ") {\n" +
+        ($4.varfix_form || $4.simple_form) + "\n" +
+        "} " + ($5.varfix_form || $5.simple_form);
+    }
   }
   | ELSE block {
-    $$ = "else {\n" +
-      $2 + "\n" +
-      "}";
+    $$ = {simple_form: "else {\n" +
+      $2.simple_form + "\n" +
+      "}"};
+    if ($2.varfix_form) {
+      $$.varfix_form = "else {\n" +
+        $2.varfix_form + "\n" +
+        "}";
+    }
   }
   ;
 
@@ -520,6 +581,7 @@ var blockId = 0;
 var blockIdMax = 0;
 var locals = {};
 var stack = [];
+var functionBlockAdded = false;
 
 function getLocal(name, alternative) {
   if (!locals[name]) {
@@ -551,27 +613,23 @@ function longStringToString(str) {
   return '"' + str.substring(0, str.length - 2).replace(/^\[\[(\r\n|\r|\n)?/m, "").replace(/\n/mg, "\\n").replace(/\r/mg, "\\r").replace(/\"/mg, "\\\"") + '"';
 }
 
-function cleanupLastStatements(str, breakFromFunction) {
-  // \044 is used instead of the dollar sign so jison doesn't replace the character
-  if (breakFromFunction) {
-    return str.replace(/\/\*return\ ((.|\n)*?)\*\//gm, "throw new ReturnValues(\0441);").replace(/\/\*break\*\/$/gm, "return;");
-  } else {
-    return str.replace(/\/\*return\ ((.|\n)*?)\*\//gm, "return \0441;").replace(/\/\*break\*\//gm, "break;");
-  }
-}
-
 function createFunction(args, body, hasVarargs) {
-  var result = "(function (" + args.join(", ") + ") { // lua function\n" +
+  functionBlockAdded = true;
+  var result = "(function (" + args.join(", ") + ") {\n" +
     "  var tmp;\n";
   if (hasVarargs) {
     result += "  var varargs = lua_newtable(slice(arguments, " + args.length + "));\n";
   }
-  return result + cleanupLastStatements(
-      body + "\n" +
-      "  /*return []*/\n") +
+  return result +
+    body.simple_form + "\n" +
+    "  return [];\n" +
     "})";
 }
 
 function getIfExp(exp) {
   return exp.simple_form || "lua_true(" + exp.single + ")";
+}
+
+function indentStatlist(statlist, laststat) {
+  return "  " + ((statlist && laststat) ? statlist + "\n" + laststat : statlist + (laststat || "")).split("\n").join("\n  ");
 }
