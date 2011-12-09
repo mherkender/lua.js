@@ -51,7 +51,6 @@ Known issues
 
 *   There are missing library functions and incomplete implementations of some functions. They should all be marked with TODO comments, or throw "Not supported" errors.
 *   The global table does not currently support metatables.
-*   The parser isn't completely Lua compatible, and may reject valid Lua code in certain cases.
 *   Some Lua functions do not handle error conditions in the same way as standard Lua does.
 *   Nested comments (e.g. `--[=[ ]=]--`) are not supported
 *   `__mode` and `__gc` metamethods are not supported
