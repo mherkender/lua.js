@@ -126,7 +126,7 @@ indent
     for (var i in locals) {
       localsCopy[i] = locals[i];
     }
-    stack.push({locals: localsCopy, blockId: blockId});
+    stack.push({locals: localsCopy, blockId: blockId, inLoop: inLoop});
 
     indentLevel++;
     blockIdMax++;
@@ -139,7 +139,26 @@ unindent
     var stackData = stack.pop();
     indentLevel--;
     locals = stackData.locals;
+    inLoop = stackData.inLoop;
+    if (!inLoop) {
+      functionBlockAdded = false;
+    }
     $$ = blockId = stackData.blockId;
+  }
+  ;
+
+funcindent
+  : indent {
+    functionBlockAdded = false;
+    inLoop = false;
+    $$ = $1;
+  }
+  ;
+
+funcunindent
+  : unindent {
+    functionBlockAdded = true;
+    $$ = $1;
   }
   ;
 
@@ -148,19 +167,22 @@ block
   ;
 
 loopblock
-  : indent chunk unindent {
+  : setinloop indent chunk unindent {
     // if a function is declared inside of a loop, there are some differences
     // with how variables behave due to the difference in scoping in JS and Lua
     // by wrapping a loop block in a function call, we resolve these problems, but it
     // is only necessary for situations where functions are declared inside of a loop
 
     if (functionBlockAdded) {
-      functionBlockAdded = false;
-      $$ = "(function () {\n" + ($2.varfix_form || $2.simple_form) + "\n" + "})();";
+      $$ = "(function () {\n" + ($3.varfix_form || $3.simple_form) + "\n" + "})();";
     } else {
-      $$ = "{\n" + $2.simple_form + "\n}";
+      $$ = "{\n" + $3.simple_form + "\n}";
     }
   }
+  ;
+
+setinloop
+  : { inLoop = true; }
   ;
 
 semi
@@ -515,17 +537,17 @@ tableconstructor
   ;
 
 funcbody
-  : indent "(" ")" chunk unindent END { $$ = createFunction([], $4); }
-  | indent "(" arglist ")" chunk unindent END { $$ = createFunction($3, $5); }
-  | indent "(" "..." ")" chunk unindent END { $$ = createFunction([], $6, true); }
-  | indent "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction($3, $7, true); }
+  : funcindent "(" ")" chunk funcunindent END { $$ = createFunction([], $4); }
+  | funcindent "(" arglist ")" chunk funcunindent END { $$ = createFunction($3, $5); }
+  | funcindent "(" "..." ")" chunk funcunindent END { $$ = createFunction([], $6, true); }
+  | funcindent "(" arglist "," "..." ")" chunk funcunindent END { $$ = createFunction($3, $7, true); }
   ;
 
 mfuncbody
-  : indent addself "(" ")" chunk unindent END { $$ = createFunction(["self"], $5); }
-  | indent addself "(" arglist ")" chunk unindent END { $$ = createFunction(["self"].concat($4), $6); }
-  | indent addself "(" "..." ")" chunk unindent END { $$ = createFunction(["self"], $6, true); }
-  | indent addself "(" arglist "," "..." ")" chunk unindent END { $$ = createFunction(["self"].concat($4), $8, true); }
+  : funcindent addself "(" ")" chunk funcunindent END { $$ = createFunction(["self"], $5); }
+  | funcindent addself "(" arglist ")" chunk funcunindent END { $$ = createFunction(["self"].concat($4), $6); }
+  | funcindent addself "(" "..." ")" chunk funcunindent END { $$ = createFunction(["self"], $6, true); }
+  | funcindent addself "(" arglist "," "..." ")" chunk funcunindent END { $$ = createFunction(["self"].concat($4), $8, true); }
   ;
 
 addself
@@ -582,6 +604,7 @@ var blockIdMax = 0;
 var locals = {};
 var stack = [];
 var functionBlockAdded = false;
+var inLoop = false;
 
 function getLocal(name, alternative) {
   if (!locals[name]) {
@@ -614,7 +637,6 @@ function longStringToString(str) {
 }
 
 function createFunction(args, body, hasVarargs) {
-  functionBlockAdded = true;
   var result = "(function (" + args.join(", ") + ") {\n" +
     "  var tmp;\n";
   if (hasVarargs) {
