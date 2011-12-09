@@ -422,7 +422,7 @@ elseif
   ;
 
 varlist
-  : var "," varlist { $$ = [$1].concat($3); }
+  : varlist "," var { $$ = $1.concat([$3]); }
   | var { $$ = [$1]; }
   ;
 
