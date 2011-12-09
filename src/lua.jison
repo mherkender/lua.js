@@ -291,18 +291,8 @@ stat
   }
   | WHILE exp DO loopblock END { $$ = {simple_form: "while (" + getIfExp($2) + ") " + $4}; }
   | REPEAT loopblock UNTIL exp { $$ = {simple_form: "do " + $2 + " while (" + getIfExp($4) + ");"}; }
-  | IF exp THEN block END {
-    $$ = {simple_form: "if (" + getIfExp($2) + ") {\n" + $4.simple_form + "\n}"};
-    if ($4.varfix_form) {
-      $$.varfix_form = "if (" + getIfExp($2) + ") {\n" + $4.varfix_form + "\n}";
-    }
-  }
-  | IF exp THEN block elseif END {
-    $$ = {simple_form: "if (" + getIfExp($2) + ") {\n" + $4.simple_form + "\n} " + $5.simple_form};
-    if ($4.varfix_form || $5.varfix_form) {
-      $$.varfix_form = "if (" + getIfExp($2) + ") {\n" +
-        ($4.varfix_form || $4.simple_form) + "\n" + "} " + ($5.varfix_form || $5.simple_form);
-    }
+  | IF conds END {
+    $$ = $2
   }
   | FOR indent namelist "=" exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
@@ -388,35 +378,35 @@ laststat
   }
   ;
 
-elseif
-  : ELSEIF exp THEN block {
-    $$ = {simple_form: "else if (" + getIfExp($2) + ") {\n" +
-      $4.simple_form + "\n" +
-      "}"};
-    if ($4.varfix_form) {
-      $$.varfix_form = "else if (" + getIfExp($2) + ") {\n" +
-        $4.varfix_form + "\n" +
-        "}";
+conds
+  : condlist {
+    $$ = $1;
+  }
+  | condlist ELSE block {
+    $$ = {simple_form: $1.simple_form + " else " + $3.simple_form};
+    if ($1.varfix_form || $3.varfix_form) {
+      $$.varfix_form = ($1.varfix_form || $1.simple_form) + " else " + ($3.varfix_form || $3.simple_form)};
     }
   }
-  | ELSEIF exp THEN block elseif {
-    $$ = {simple_form: "else if (" + getIfExp($2) + ") {\n" +
-      $4.simple_form + "\n" +
-      "} " + $5.simple_form};
-    if ($4.varfix_form || $5.varfix_form) {
-      $$.varfix_form = "else if (" + getIfExp($2) + ") {\n" +
-        ($4.varfix_form || $4.simple_form) + "\n" +
-        "} " + ($5.varfix_form || $5.simple_form);
+  ;
+
+condlist
+  : cond {
+    $$ = $1;
+  }
+  | condlist ELSEIF cond {
+    $$ = {simple_form: $1.simple_form + " else " + $3.simple_form};
+    if ($1.varfix_form || $3.varfix_form) {
+      $$.varfix_form = ($1.varfix_form || $1.simple_form) + " else " + ($3.varfix_form || $3.simple_form)};
     }
   }
-  | ELSE block {
-    $$ = {simple_form: "else {\n" +
-      $2.simple_form + "\n" +
-      "}"};
-    if ($2.varfix_form) {
-      $$.varfix_form = "else {\n" +
-        $2.varfix_form + "\n" +
-        "}";
+  ;
+
+cond
+  : exp THEN block {
+    $$ = {simple_form: "if (" + getIfExp($1) + ") {\n" + $3.simple_form + "\n}"};
+    if ($3.varfix_form) {
+      $$.varfix_form = "if (" + getIfExp($1) + ") {\n" + $3.varfix_form + "\n}";
     }
   }
   ;
@@ -442,7 +432,7 @@ arglist
   ;
 
 funcname
-  : NAME "." funcname { $$ = [$1].concat($3); }
+  : funcname "." NAME { $$ = $1.concat([$3]); }
   | NAME { $$ = [$1]; }
   ;
 
@@ -561,26 +551,30 @@ var
   ;
 
 functioncall
-  : prefixexp args {
-    $$ = "lua_call(" + $1.single + ", " + getTempDecl($2) + ")";
-  } 
-  | prefixexp STRING { $$ = "lua_call(" + $1.single + ", [" + $2 + "])"; }
-  | prefixexp tableconstructor { $$ = "lua_call(" + $1.single + ", [" + $2 + "])"; }
+  : prefixexp args { $$ = "lua_call(" + $1.single + ", " + getTempDecl($2) + ")"; } 
   | prefixexp ":" NAME args { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', " + getTempDecl($4) + ")"; }
-  | prefixexp ":" NAME STRING { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', [" + $4 + "])"; }
-  | prefixexp ":" NAME tableconstructor { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', [" + $4 + "])"; }
   ;
 
 args
   : "(" explist ")" { $$ = $2; }
   | "(" ")" { $$ = {exps: []}; }
+  | tableconstructor { $$ = {exps: [$1]}; }
+  | STRING { $$ = {exps: [$1]}; }
   ;
 
 fieldlist
-  : fieldlist fieldsep exp { $$ = {keyed: $1.keyed, exps: $1.exps.concat([$3.single]), endmulti: $3.multi}; }
-  | fieldlist fieldsep NAME "=" exp { $$ = {keyed: $1.keyed.concat([["'" + $3 + "'", $5.single]]), exps: $1.exps}; }
-  | fieldlist fieldsep "[" exp "]" "=" exp { $$ = {keyed: $1.keyed.concat([[$4.single, $7.single]]), exps: $1.exps}; }
-  | exp { $$ = {keyed: [], exps: [$1.single], endmulti: $1.endmulti}; }
+  : field { $$ = $1; }
+  | fieldlist fieldsep field {
+    $$ = {
+      keyed: $1.keyed.concat($3.keyed),
+      exps: $1.exps.concat($3.exps),
+      endmulti: $3.endmulti
+    };
+  }
+  ;
+
+field
+  : exp { $$ = {keyed: [], exps: [$1.single], endmulti: $1.endmulti}; }
   | NAME "=" exp { $$ = {keyed: [["'" + $1 + "'", $3.single]], exps: []}; }
   | "[" exp "]" "=" exp { $$ = {keyed: [[$2.single, $5.single]], exps: []}; }
   ;
