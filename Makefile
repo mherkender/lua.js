@@ -8,6 +8,7 @@ all: $(GENERATED_FILES)
 
 lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
 	cat $^ > $@
+	chmod +x $@ || rm -f $@
 
 src/lua_parser.js: src/build_lua_parser.js src/lua.jison $(shell find jison)
 	pwd
