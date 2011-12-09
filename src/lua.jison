@@ -286,17 +286,17 @@ stat
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
-    $$ = {simple_form: "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
-      "stop_" + $2 + " = lua_assertfloat(" + $7.single + ");\n" +
+    $$ = {simple_form: "var " + $3[0] + " = " + autoAssertFloat($5) + ", " +
+      "stop_" + $2 + " = " + autoAssertFloat($7) + ";\n" +
       "for (; " + $3[0] + " <= stop_" + $2 + "; " + $3[0] + "++) " + $9};
   }
   | FOR indent namelist "=" exp "," exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
-    $$ = {simple_form: "var " + $3[0] + " = lua_assertfloat(" + $5.single + "), " +
-      "stop_" + $2 + " = lua_assertfloat(" + $7.single + "), " +
-      "step_" + $2 + " = lua_assertfloat(" + $9.single + ");\n" +
+    $$ = {simple_form: "var " + $3[0] + " = " + autoAssertFloat($5) + ", " +
+      "stop_" + $2 + " = " + autoAssertFloat($7) + ", " +
+      "step_" + $2 + " = " + autoAssertFloat($9) + ";\n" +
       "for (; step_" + $2 + " > 0 ? " + $3[0] + " <= stop_" + $2 + " : " + $3[0] + " >= stop_" + $2 + "; " + $3[0] + " += step_" + $2 + ") " + $11};
   }
   | FOR indent namelist IN explist DO loopblock unindent END {
@@ -632,4 +632,8 @@ function getIfExp(exp) {
 
 function indentStatlist(statlist, laststat) {
   return "  " + ((statlist && laststat) ? statlist + "\n" + laststat : statlist + (laststat || "")).split("\n").join("\n  ");
+}
+
+function autoAssertFloat(possibleNumber) {
+  return possibleNumber.is_number ? possibleNumber.single : "lua_assertfloat(" + possibleNumber.single + ")";
 }
