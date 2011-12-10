@@ -172,11 +172,14 @@ loopblock
     // with how variables behave due to the difference in scoping in JS and Lua
     // by wrapping a loop block in a function call, we resolve these problems, but it
     // is only necessary for situations where functions are declared inside of a loop
-
+    
     if (functionBlockAdded) {
-      $$ = "(function () {\n" + ($3.varfix_form || $3.simple_form) + "\n" + "})();";
+      $$ = {
+        block: $3.varfix_form || $3.simple_form,
+        use_function_block: true
+      };
     } else {
-      $$ = "{\n" + $3.simple_form + "\n}";
+      $$ = {block: $3.simple_form};
     }
   }
   ;
@@ -289,8 +292,8 @@ stat
       $$.varfix_form = "// do\n" + $2.varfix_form + "\n// end";
     }
   }
-  | WHILE exp DO loopblock END { $$ = {simple_form: "while (" + getIfExp($2) + ") " + $4}; }
-  | REPEAT loopblock UNTIL exp { $$ = {simple_form: "do " + $2 + " while (" + getIfExp($4) + ");"}; }
+  | WHILE exp DO loopblock END { $$ = {simple_form: "while (" + getIfExp($2) + ") " + autoFunctionBlock($4)}; }
+  | REPEAT loopblock UNTIL exp { $$ = {simple_form: "do " + autoFunctionBlock($2) + " while (" + getIfExp($4) + ");"}; }
   | IF conds END {
     $$ = $2
   }
@@ -298,39 +301,77 @@ stat
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
-    $$ = {simple_form: "var " + $3[0] + " = " + autoAssertFloat($5) + ", " +
-      "stop_" + $2 + " = " + autoAssertFloat($7) + ";\n" +
-      "for (; " + $3[0] + " <= stop_" + $2 + "; " + $3[0] + "++) " + $9};
+    if ($9.use_function_block) {
+      $$ = {simple_form: "var var_" + $2 + " = " + autoAssertFloat($5) + ", " +
+        "stop_" + $2 + " = " + autoAssertFloat($7) + ";\n" +
+        "for (; var_" + $2 + " <= stop_" + $2 + "; var_" + $2 + "++) (function() {\n" +
+        "  var " + $3[0] + " = var_" + $2 + ";\n" +
+        $9.block + "\n" +
+        "})();"};
+    } else {
+      $$ = {simple_form: "var var_" + $2 + " = " + autoAssertFloat($5) + ", " +
+        "stop_" + $2 + " = " + autoAssertFloat($7) + ";\n" +
+        "for (; var_" + $2 + " <= stop_" + $2 + "; var_" + $2 + "++) {\n" +
+        "  var " + $3[0] + " = var_" + $2 + ";\n" +
+        $9.block +
+        "\n}"};
+    }
   }
   | FOR indent namelist "=" exp "," exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
-    $$ = {simple_form: "var " + $3[0] + " = " + autoAssertFloat($5) + ", " +
+
+    var tmp = "var var_" + $2 + " = " + autoAssertFloat($5) + ", " +
       "stop_" + $2 + " = " + autoAssertFloat($7) + ", " +
       "step_" + $2 + " = " + autoAssertFloat($9) + ";\n" +
-      "for (; step_" + $2 + " > 0 ? " + $3[0] + " <= stop_" + $2 + " : " + $3[0] + " >= stop_" + $2 + "; " + $3[0] + " += step_" + $2 + ") " + $11};
+      "for (; step_" + $2 + " > 0 ? var_" + $2 + " <= stop_" + $2 + " : var_" + $2 + " >= stop_" + $2 + "; var_" + $2 + " += step_" + $2 + ") ";
+    if ($11.use_function_block) {
+      tmp += "(function () {\n";
+    } else {
+      tmp += "{\n";
+    }
+    tmp += "  var " + $3[0] + " = var_" + $2 + ";\n" +
+        $11.block + "\n";
+    if ($11.use_function_block) {
+      tmp += "\n})();";
+    } else {
+      tmp += "\n}";
+    }
+    $$ = {simple_form: tmp};
   }
   | FOR indent namelist IN explist DO loopblock unindent END {
     var tmp;
-    tmp = "var " + $3.join(", ") + ";\n" +
-      "tmp = " + getTempDecl($5) + ";\n" +
+    tmp = "tmp = " + getTempDecl($5) + ";\n" +
       "var f_" + $2 + " = tmp[0], " +
       "s_" + $2 + " = tmp[1], " +
       "var_" + $2 + " = tmp[2];\n";
 
-    if ($3.length == 1) {
+    if ($3.length == 1 && !$7.use_function_block) {
+      // simple form of this loop that works in certain situations
       tmp += "tmp = null;\n" +
-        "while ((" + $3[0] + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) " + $7;
+        "var " + $3[0] + ";\n" +
+        "while ((" + $3[0] + " = var_" + $2 + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) {\n" + $7.block + "\n}";
     } else {
-      tmp += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) {\n" +
-        "  var_" + $2 + " = tmp[0];\n";
-      for (var i = 0; i < $3.length; i++) {
-        tmp += "  " + $3[i] + " = tmp[" + i + "];\n";
+      tmp += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) ";
+      if ($7.use_function_block) {
+        tmp += "(function () {\n";
+      } else {
+        tmp += "{\n";
       }
-      tmp += "  " + $7.split("\n").join("\n  ") + "\n" +
-        "}\n" +
-        "tmp = null;";
+      tmp += "  var " + $3[0] + " = var_" + $2 + " = tmp[0]";
+      for (var i = 1; i < $3.length; i++) {
+        tmp += ", " + $3[i] + " = tmp[" + i + "]";
+      }
+      tmp += ";\n" +
+        "  tmp = null;\n" +
+        $7.block + "\n";
+      if ($7.use_function_block) {
+        tmp += "})();";
+      } else {
+        tmp += "}";
+      }
+      tmp += "\ntmp = null;";
     }
     $$ = {simple_form: tmp};
   }
@@ -383,9 +424,9 @@ conds
     $$ = $1;
   }
   | condlist ELSE block {
-    $$ = {simple_form: $1.simple_form + " else " + $3.simple_form};
+    $$ = {simple_form: $1.simple_form + " else {\n" + $3.simple_form + "\n}"};
     if ($1.varfix_form || $3.varfix_form) {
-      $$.varfix_form = ($1.varfix_form || $1.simple_form) + " else " + ($3.varfix_form || $3.simple_form)};
+      $$.varfix_form = ($1.varfix_form || $1.simple_form) + " else {\n" + ($3.varfix_form || $3.simple_form) + "\n}";
     }
   }
   ;
@@ -422,8 +463,8 @@ explist
   ;
 
 namelist
-  : namelist "," NAME { $$ = $1.concat([getLocal($3)]); }
-  | NAME { $$ = [getLocal($1)]; }
+  : namelist "," NAME { $$ = $1.concat([setLocal($3)]); }
+  | NAME { $$ = [setLocal($1)]; }
   ;
 
 arglist
@@ -611,7 +652,7 @@ function getLocal(name, alternative) {
 }
 
 function setLocal(name, localName) {
-  return locals[name] = localName;
+  return locals[name] = localName || "_" + name + "_" + blockId;
 }
 
 function getTempDecl(explist) {
@@ -652,4 +693,9 @@ function indentStatlist(statlist, laststat) {
 
 function autoAssertFloat(possibleNumber) {
   return possibleNumber.is_number ? possibleNumber.single : "lua_assertfloat(" + possibleNumber.single + ")";
+}
+
+function autoFunctionBlock(loopblock) {
+  return loopblock.use_function_block ?
+    "(function() {\n" + loopblock.block + "\n})();" : "{\n" + loopblock.block + "\n}";
 }
