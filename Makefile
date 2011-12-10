@@ -4,7 +4,7 @@ CLOSURE_COMPILER=closurecompiler/compiler.jar
 
 GENERATED_FILES=lua2js lua.js lua.as lua.min.js lua+parser.js lua+parser.min.js
 
-all: $(GENERATED_FILES)
+all: $(GENERATED_FILES) luajs.zip
 
 lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
 	cat $^ > $@
@@ -28,6 +28,9 @@ lua+parser.js: src/lua_header.js src/lua_parser.js src/lualib.js
 
 lua+parser.min.js: lua+parser.js
 	java -jar $(CLOSURE_COMPILER) --compilation_level SIMPLE_OPTIMIZATIONS --js_output_file $@ --js $<
+
+luajs.zip: $(GENERATED_FILES)
+	zip $@ $^
 
 clean:
 	rm -rf $(GENERATED_FILES)
