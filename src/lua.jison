@@ -350,8 +350,10 @@ stat
     if ($3.length == 1 && !$7.use_function_block) {
       // simple form of this loop that works in certain situations
       tmp += "tmp = null;\n" +
-        "var " + $3[0] + ";\n" +
-        "while ((" + $3[0] + " = var_" + $2 + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) {\n" + $7.block + "\n}";
+        "while ((var_" + $2 + " = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "])[0]) != null) {\n" +
+          "  var " + $3[0] + " = var_" + $2 + ";\n" +
+          $7.block +
+          "\n}";
     } else {
       tmp += "while ((tmp = lua_call(f_" + $2 + ", [s_" + $2 + ", var_" + $2 + "]))[0] != null) ";
       if ($7.use_function_block) {
@@ -359,7 +361,8 @@ stat
       } else {
         tmp += "{\n";
       }
-      tmp += "  var " + $3[0] + " = var_" + $2 + " = tmp[0]";
+      tmp += "  var_" + $2 + " = tmp[0];\n" +
+        "  var " + $3[0] + " = var_" + $2;
       for (var i = 1; i < $3.length; i++) {
         tmp += ", " + $3[i] + " = tmp[" + i + "]";
       }
