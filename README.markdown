@@ -1,10 +1,7 @@
 Download
 ========
 
-*   [lua2js](https://raw.github.com/mherkender/lua.js/precompiled/lua2js) - command line tool for offline parsing
-*   [lua.min.js](https://raw.github.com/mherkender/lua.js/precompiled/lua.min.js) - lua.js library
-*   [lua+parser.min.js](https://raw.github.com/mherkender/lua.js/precompiled/lua+parser.min.js) - lua.js library w/ runtime parsing
-*   [lua.as](https://raw.github.com/mherkender/lua.js/precompiled/lua.min.js) - lua.js library for ActionScript 3.0
+[Click here to download precompiled versions of lua.js](https://github.com/downloads/mherkender/lua.js/luajs.zip)
 
 To build these files yourself, use make in the root of the project, for example...
 
