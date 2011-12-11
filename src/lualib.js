@@ -834,7 +834,7 @@ lua_libs["math"] = {
     } else if (arguments.length == 1) {
       return [Math.floor(val * m + 1)];
     } else {
-      return val;
+      return [val];
     }
   },
   "randomseed": function (x) {
