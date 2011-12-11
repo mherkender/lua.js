@@ -53,10 +53,6 @@ function ensure_notarraymode(table) {
   }
 }
 
-function lua_isuint(n) {
-  return n && (n & 0x7fffffff) == n;
-}
-
 function ReturnValues(vars, count) {
   this.vars = vars || [];
   this.count = count || 1;
@@ -85,25 +81,27 @@ function lua_assertfloat(n) {
 function lua_newtable(autoIndexList) {
   var result = {str: {}, uints: {}, floats: {}, bool: {}};
   for (var i = 1; i < arguments.length - 1; i += 2) {
-    if (arguments[i + 1] == null) {
+    var value = arguments[i + 1];
+    if (value == null) {
       continue;
     }
-    switch (typeof arguments[i]) {
+    var key = arguments[i];
+    switch (typeof key) {
       case "string":
-        result.str[arguments[i]] = arguments[i + 1];
+        result.str[key] = value;
         break;
       case "number":
-        if (lua_isuint(arguments[i])) {
-          result.uints[arguments[i]] = arguments[i + 1];
+        if (key > 0 && (key | 0) == key) {
+          result.uints[key] = value;
         } else {
-          result.floats[arguments[i]] = arguments[i + 1];
+          result.floats[key] = value;
         }
         break;
       case "boolean":
-        result.bool[arguments[i]] = arguments[i + 1];
+        result.bool[key] = value;
         break;
       default:
-        throw new Error("Unsupported type for table: " + (typeof arguments[i]));
+        throw new Error("Unsupported type for table: " + (typeof key));
     }
   }
   if (autoIndexList) {
@@ -341,7 +339,7 @@ function lua_rawget(table, key) {
     case "string":
       return table.str[key];
     case "number":
-      if (lua_isuint(key)) {
+      if (key > 0 && (key | 0) == key) {
         if (table.arraymode) {
           return table.uints[key - 1];
         } else {
@@ -367,7 +365,7 @@ function lua_rawset(table, key, value) {
       }
       break;
     case "number":
-      if (lua_isuint(key)) {
+      if (key > 0 && (key | 0) == key) {
         ensure_notarraymode(table);
         if (value == null) {
           delete table.uints[key];
