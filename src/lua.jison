@@ -293,7 +293,7 @@ stat
     }
   }
   | WHILE exp DO loopblock END { $$ = {simple_form: "while (" + getIfExp($2) + ") " + autoFunctionBlock($4)}; }
-  | REPEAT loopblock UNTIL exp { $$ = {simple_form: "do " + autoFunctionBlock($2) + " while (" + getIfExp($4) + ");"}; }
+  | REPEAT loopblock UNTIL exp { $$ = {simple_form: "do " + autoFunctionBlock($2) + " while (!(" + getIfExp($4) + "));"}; }
   | IF conds END {
     $$ = $2
   }
