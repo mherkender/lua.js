@@ -26,8 +26,9 @@ lua.min.js: lua.js
 lua+parser.js: src/lua_header.js src/lua_parser.js src/lualib.js
 	cat $^ > $@
 
+# TODO: SIMPLE_OPTIMIZATIONS is breaking lua_load
 lua+parser.min.js: lua+parser.js
-	java -jar $(CLOSURE_COMPILER) --compilation_level SIMPLE_OPTIMIZATIONS --js_output_file $@ --js $<
+	java -jar $(CLOSURE_COMPILER) --compilation_level WHITESPACE_ONLY --js_output_file $@ --js $<
 
 luajs.zip: $(GENERATED_FILES)
 	zip $@ $^
