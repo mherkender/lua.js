@@ -1,7 +1,7 @@
 Download
 ========
 
-[Click here to download precompiled versions of lua.js](https://github.com/downloads/mherkender/lua.js/luajs.zip)
+[Click here to download precompiled versions of lua.js](https://github.com/mherkender/lua.js/raw/precompiled2/luajs.zip)
 
 To build these files yourself, use make in the root of the project, for example...
 
