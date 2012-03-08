@@ -32,6 +32,7 @@ function lua_load(chunk, chunkname) {
   eval(
     "fn = function " + (chunkname || "load") + "() {\n" +
     lua_parser.parse(chunk) + "\n" +
+    "  return G;\n" +
     "};");
   return fn;
 }
