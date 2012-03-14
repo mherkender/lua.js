@@ -677,7 +677,7 @@ var lua_core = {
     if (j == null) {
       j = list.length;
     }
-    throw new ReturnValues(list.uints.slice(i - 1, j), 2);
+    throw new ReturnValues(list.uints.slice(i - 1, j), 1);
   },
   "_VERSION": "Lua 5.1",
   "xpcall": function () {
