@@ -24,8 +24,8 @@
 "0x"[0-9a-fA-f]+        return 'NUMBER';
 \d+(\.\d*)?([eE]"-"?\d+)? return 'NUMBER';
 \.\d+([eE]"-"?\d+)?     return 'NUMBER';
-"\""([^\n]|(\.))*?"\""  return 'STRING';
-"'"([^\n]|(\.))*?"'"    return 'STRING';
+"\""("\\\""|[^\"])*"\"" return 'STRING';
+"'"("\\'"|[^'])*"'"     return 'STRING';
 "[["(.|\n|\r)*?"]]"     yytext = longStringToString(yytext); return 'STRING';
 ":"                     return ':';
 ";"                     return ';';
