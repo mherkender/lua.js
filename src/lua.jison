@@ -23,7 +23,7 @@
 "--".*                  /* skip comment */
 "0x"[0-9a-fA-f]+        return 'NUMBER';
 \d+(\.\d*)?([eE]"-"?\d+)? return 'NUMBER';
-\.\d*([eE]"-"?\d+)?     return 'NUMBER';
+\.\d+([eE]"-"?\d+)?     return 'NUMBER';
 "\""([^\n]|(\.))*?"\""  return 'STRING';
 "'"([^\n]|(\.))*?"'"    return 'STRING';
 "[["(.|\n|\r)*?"]]"     yytext = longStringToString(yytext); return 'STRING';
