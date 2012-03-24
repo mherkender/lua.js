@@ -1,6 +1,7 @@
 # ex:noexpandtab:softtabstop=0
 
 CLOSURE_COMPILER=closurecompiler/compiler.jar
+NODE=node
 
 GENERATED_FILES=lua2js lua.js lua.as lua.min.js lua+parser.js lua+parser.min.js
 
@@ -11,7 +12,7 @@ lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
 	chmod +x $@ || rm -f $@
 
 src/lua_parser.js: src/build_lua_parser.js src/lua.jison $(shell find jison)
-	cd . && node $<
+	cd . && $(NODE) $<
 
 lua.js: src/lua_header.js src/lualib.js
 	cat $^ > $@
