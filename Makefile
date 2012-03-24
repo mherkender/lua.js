@@ -36,3 +36,5 @@ clean:
 	rm -rf $(GENERATED_FILES)
 
 .PHONY: all clean
+
+.SUFFIXES:
