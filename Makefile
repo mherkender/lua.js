@@ -12,7 +12,6 @@ lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
 	chmod +x $@ || rm -f $@
 
 src/lua_parser.js: src/build_lua_parser.js src/lua.jison $(shell find jison)
-	pwd
 	cd . && $(NODE) $<
 
 lua.js: src/lua_header.js src/lualib.js
@@ -38,3 +37,5 @@ clean:
 	rm -rf $(GENERATED_FILES)
 
 .PHONY: all clean
+
+.SUFFIXES:

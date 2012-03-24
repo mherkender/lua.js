@@ -877,9 +877,12 @@ lua_libs["os"] = {
   "setlocale": function () {
     not_supported();
   },
-  "time": function () {
-    // TODO
-    not_supported();
+  "time": function (table) {
+    if (table) {
+      not_supported();
+    } else {
+      return [new Date().getTime()]; // thanks ghoulsblade
+    }
   }
 };
 
