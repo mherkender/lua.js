@@ -53,9 +53,8 @@ function ensure_notarraymode(table) {
   }
 }
 
-function ReturnValues(vars, count) {
+function ReturnValues(vars) {
   this.vars = vars || [];
-  this.count = count || 1;
 }
 
 // methods used by generated lua code
@@ -153,7 +152,7 @@ function lua_rawcall(func, args) {
   try {
     return func.apply(null, args);
   } catch (e) {
-    if (e.constructor == ReturnValues && --e.count <= 0) {
+    if (e.constructor == ReturnValues) {
       return e.vars;
     }
     // This breaks the stack on Chrome
