@@ -1006,15 +1006,23 @@ lua_libs["string"] = {
     }
   },
   "sub": function (s, i, j) {
-    if (i < 0) {
-      i = s.length + 1 - i;
-    }
+    // thanks to ghoulsblade for pointing out the bugs in string.sub
+    i = i < 0 ? (i + s.length + 1) : (i >= 0 ? i : 0)
     if (j == null) {
-      return [s.substring(i)];
-    } else if (j < 0) {
-      j = s.length + 1 - j;
+      j = -1;
     }
-    return [s.substring(i, j)];
+    j = j < 0 ? (j + s.length + 1) : (j >= 0 ? j : 0)
+    if (i < 1) {
+      i = 1;
+    }
+    if (j > s.length) {
+      j = s.length;
+    }
+    if (i <= j) {
+      return [s.substr(i - 1, j - i + 1)];
+    } else {
+      return [""];
+    }
   },
   "upper": function (s) {
     if (typeof s == "string") {
