@@ -78,7 +78,7 @@ function lua_assertfloat(n) {
   return result;
 }
 function lua_newtable(autoIndexList) {
-  var result = {str: {}, uints: {}, floats: {}, bool: {}};
+  var result = {str: {}, uints: {}, floats: {}, bool: {}, obj: []};
   for (var i = 1; i < arguments.length - 1; i += 2) {
     var value = arguments[i + 1];
     if (value == null) {
@@ -98,6 +98,19 @@ function lua_newtable(autoIndexList) {
         break;
       case "boolean":
         result.bool[key] = value;
+        break;
+      case "object":
+		var bFound = false;
+		for (var i in result.obj) if (result.obj[i][0] == key) {
+			if (value == null) {
+				result.obj.splice(i,1); // remove element [i]
+			} else {
+				bFound = true;
+				result.obj[i][1] = value; // modifiy/overwrite existing entry (could happen that same key is used twice in autoIndexList)
+			}
+			break;
+		}
+		if (!bFound && value != null) result.obj.push([key,value]); // add new entry
         break;
       default:
         throw new Error("Unsupported type for table: " + (typeof key));
@@ -349,6 +362,9 @@ function lua_rawget(table, key) {
       }
     case "boolean":
       return table.bool[key];
+    case "object":
+	  for (var i in table.obj) if (table.obj[i][0] == key) return table.obj[i][1];
+	break;
     default:
       throw new Error("Unsupported key for table: " + (typeof key));
   }
@@ -386,6 +402,19 @@ function lua_rawset(table, key, value) {
         table.bool[key] = value;
       }
       break;
+    case "object":
+		var bFound = false;
+		for (var i in table.obj) if (table.obj[i][0] == key) {
+			if (value == null) {
+				table.obj.splice(i,1); // remove element [i]
+			} else {
+				bFound = true;
+				table.obj[i][1] = value; // modifiy/overwrite existing entry
+			}
+			break;
+		}
+		if (!bFound && value != null) table.obj.push([key,value]); // add new entry
+	break;
     default:
       throw new Error("Unsupported key for table: " + (typeof key));
   }
