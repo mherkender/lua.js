@@ -574,7 +574,7 @@ tableconstructor
 funcbody
   : funcindent "(" ")" chunk funcunindent END { $$ = createFunction([], $4); }
   | funcindent "(" arglist ")" chunk funcunindent END { $$ = createFunction($3, $5); }
-  | funcindent "(" "..." ")" chunk funcunindent END { $$ = createFunction([], $6, true); }
+  | funcindent "(" "..." ")" chunk funcunindent END { $$ = createFunction([], $5, true); }
   | funcindent "(" arglist "," "..." ")" chunk funcunindent END { $$ = createFunction($3, $7, true); }
   ;
 
