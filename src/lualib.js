@@ -1132,8 +1132,14 @@ lua_libs["string"] = {
 // table
 lua_libs["table"] = {
   "concat": function (table, sep, i, j) {
-    // TODO
-    not_supported();
+	var arr;
+	if (i) {
+		if (j == null) j = table.uints.length;
+		arr = table.uints.slice(i-1,j);
+	} else {
+		arr = table.uints;
+	}
+	return [arr.join(sep)];
   },
   "insert": function (table, pos, value) {
     ensure_arraymode(table);
