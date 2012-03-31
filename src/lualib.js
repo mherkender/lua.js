@@ -982,9 +982,21 @@ lua_libs["string"] = {
   "dump": function (func) {
     not_supported();
   },
-  "find": function () {
-    // TODO
-    not_supported();
+  "find": function (s,pattern,init,plain) {
+	// very basic version to find literal pattern hits without regexp, and simple regexp
+	if (!plain) {
+		pattern = pattern.replace("%","\\");
+		pattern = pattern.replace("-","+");
+	}
+	var results = (init != undefined) ? s.match(pattern,init) : s.match(pattern);
+	if (!results) return [];
+	var pos_start = s.search(results[0]);
+	var pos_end = pos_start + results[0].length - 1;
+	var res = [pos_start+1,pos_end+1];
+	for (var i=1;i<results.length;++i) res.push(results[i]);
+	//~ if (results.length == 1) 
+	//~ if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
+	return res;
   },
   "format": function (formatstring) {
     // TODO: Finish implementation
