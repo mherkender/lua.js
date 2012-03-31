@@ -1012,9 +1012,14 @@ lua_libs["string"] = {
       throw new Error("Input not string");
     }
   },
-  "match": function (s) {
-    // TODO
-    not_supported();
+  "match": function (s,pattern,init) {
+	// very basic version to find literal pattern hits without regexp, and simple regexp
+	pattern = pattern.replace("%","\\");
+	pattern = pattern.replace("-","+");
+	var results = (init != undefined) ? s.match(pattern,init) : s.match(pattern);
+	if (!results) return [];
+	if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
+	return results;
   },
   "rep": function (s, n) {
     if (typeof s == "string" && typeof n == "number") {
