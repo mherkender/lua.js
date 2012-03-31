@@ -380,22 +380,22 @@ stat
     $$ = {simple_form: tmp};
   }
   | FUNCTION funcname funcbody {
-    var tmp;
-    tmp = "G";
-    for (var i = 0; i < $2.length; i++) {
-      tmp += ".str['" + $2[i] + "']";
+    var tmp = getLocal($2[0], "G.str['" + $2[0] + "']");
+    if ($2.length > 1) {
+      for (var i = 1; i < $2.length - 1; i++) {
+        tmp = "lua_tableget(" + tmp + ", '" + $2[i] + "')";
+      }
+      $$ = {simple_form: "lua_tableset(" + tmp + ", '" + $2[i] + "', " + $3 + ")"};
+    } else {
+      $$ = {simple_form: tmp + " = " + $3};
     }
-    tmp += " = " + $3 + ";";
-    $$ = {simple_form: tmp};
   }
   | FUNCTION funcname ":" NAME mfuncbody {
-    var tmp;
-    tmp = "G";
-    for (var i = 0; i < $2.length; i++) {
-      tmp += ".str['" + $2[i] + "']";
+    var tmp = getLocal($2[0], "G.str['" + $2[0] + "']");
+    for (var i = 1; i < $2.length; i++) {
+      tmp = "lua_tableget(" + tmp + ", '" + $2[i] + "')";
     }
-    tmp += ".str['" + $4 + "'] = " + $5 + ";";
-    $$ = {simple_form: tmp};
+    $$ = {simple_form: "lua_tableset(" + tmp + ", '" + $4 + "', " + $5 + ")"};
   }
   | LOCAL FUNCTION NAME funcbody {
     $$ = {simple_form: "var " + getLocal($3) + " = " + $4 + ";"};
