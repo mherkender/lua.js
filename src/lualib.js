@@ -994,6 +994,28 @@ lua_libs["package"] = {
 };
 
 // string
+function _lua_string_translate_pattern (pattern,plain) {
+	if (!plain) {
+		pattern = pattern.replace(/%a/g,"\\w"); // lua:%a=(all letters) js:\w=(alphanumeric and _) -> incorrect, but [abcd...] wouldn't work inside set : [xy%a]
+		pattern = pattern.replace(/%/g,"\\");
+		pattern = pattern.replace(/-/g,"*"); // 0 or more, unlike * : shortest 
+		// TODO: finish implementation, this is just a rough estimate
+	} else {
+		// TODO: escape regexp special chars
+	}
+	return pattern;
+}
+function _lua_gmatch_next(o) {
+	// TODO: finish implementation, this is just a rough estimate
+	// very basic version to find literal pattern hits without regexp, and simple regexp
+	var results = o.s.match(o.pattern);
+	if (!results) return []; // not found, end
+	var pos = o.s.search(results[0]); // search pos of whole match
+	if (pos == -1) throw new Error("string.match bug: found but position cannot be determined"); // shouldn't happen if browser implements search and match correctly
+	o.s = o.s.substr(pos + results[0].length);
+	if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
+	return results;
+}
 lua_libs["string"] = {
   "byte": function (s, i, j) {
     if (i == null) {
@@ -1015,11 +1037,9 @@ lua_libs["string"] = {
     not_supported();
   },
   "find": function (s,pattern,init,plain) {
+	// TODO: finish implementation, this is just a rough estimate
 	// very basic version to find literal pattern hits without regexp, and simple regexp
-	if (!plain) {
-		pattern = pattern.replace("%","\\");
-		pattern = pattern.replace("-","+");
-	}
+	pattern = _lua_string_translate_pattern(pattern,plain);
 	var results = (init != undefined) ? s.match(pattern,init) : s.match(pattern);
 	if (!results) return [];
 	var pos_start = s.search(results[0]);
@@ -1033,8 +1053,8 @@ lua_libs["string"] = {
     return ["[" + slice(arguments, 1).join(", ") + "]" + arguments[0]];
   },
   "gmatch": function (s, pattern) {
-    // TODO
-    not_supported();
+	// TODO: finish implementation, this is just a rough estimate
+    return [_lua_gmatch_next, {s:s,pattern:_lua_string_translate_pattern(pattern)}, null];
   },
   "gsub": function (s, pattern, repl, n) {
     // TODO
@@ -1055,9 +1075,9 @@ lua_libs["string"] = {
     }
   },
   "match": function (s,pattern,init) {
+	// TODO: finish implementation, this is just a rough estimate
 	// very basic version to find literal pattern hits without regexp, and simple regexp
-	pattern = pattern.replace("%","\\");
-	pattern = pattern.replace("-","+");
+	pattern = _lua_string_translate_pattern(pattern);
 	var results = (init != undefined) ? s.match(pattern,init) : s.match(pattern);
 	if (!results) return [];
 	if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
