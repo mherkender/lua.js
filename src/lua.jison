@@ -218,7 +218,7 @@ prefixexp
       $$ = {single: $1.prefixexp};
     }
   }
-  | functioncall { $$ = {single: $1 + "[0]", multi: $1}; }
+  | functioncall { $$ = {single: $1 + "[0]", endmulti: $1}; }
   | "(" exp ")" { $$ = {single: "(" + $2.single + ")", simple_form: $2.simple_form}; }
   ;
 
@@ -462,8 +462,8 @@ varlist
   ;
 
 explist
-  : explist "," exp { $$ = {exps: $1.exps.concat([$3.single]), endmulti: $3.multi}; }
-  | exp { $$ = {exps: [$1.single], endmulti: $1.multi}; }
+  : explist "," exp { $$ = {exps: $1.exps.concat([$3.single]), endmulti: $3.endmulti}; }
+  | exp { $$ = {exps: [$1.single], endmulti: $1.endmulti}; }
   ;
 
 namelist
@@ -555,7 +555,7 @@ exp
     };
   }
   | "#" exp { $$ = {single: 'lua_len(' + $2.single + ')'}; }
-  | "..." { $$ = {single: 'varargs[0]', multi: 'varargs'}; }
+  | "..." { $$ = {single: 'varargs[0]', endmulti: 'varargs'}; }
   ;
 
 tableconstructor
