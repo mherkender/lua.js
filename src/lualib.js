@@ -1094,6 +1094,9 @@ lua_libs["string"] = {
   }
 };
 
+// add string functions to every string
+String.prototype["metatable"] = lua_newtable(null, "__index", lua_newtable2(lua_libs["string"]));
+
 // table
 lua_libs["table"] = {
   "concat": function (table, sep, i, j) {
