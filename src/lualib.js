@@ -994,6 +994,28 @@ lua_libs["package"] = {
 };
 
 // string
+function _lua_string_translate_pattern (pattern,plain) {
+	if (!plain) {
+		pattern = pattern.replace(/%a/g,"\\w"); // lua:%a=(all letters) js:\w=(alphanumeric and _) -> incorrect, but [abcd...] wouldn't work inside set : [xy%a]
+		pattern = pattern.replace(/%/g,"\\");
+		pattern = pattern.replace(/-/g,"*"); // 0 or more, unlike * : shortest 
+		// TODO: finish implementation, this is just a rough estimate
+	} else {
+		// TODO: escape regexp special chars
+	}
+	return pattern;
+}
+function _lua_gmatch_next(o) {
+	// TODO: finish implementation, this is just a rough estimate
+	// very basic version to find literal pattern hits without regexp, and simple regexp
+	var results = o.s.match(o.pattern);
+	if (!results) return []; // not found, end
+	var pos = o.s.search(results[0]); // search pos of whole match
+	if (pos == -1) throw new Error("string.match bug: found but position cannot be determined"); // shouldn't happen if browser implements search and match correctly
+	o.s = o.s.substr(pos + results[0].length);
+	if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
+	return results;
+}
 lua_libs["string"] = {
   "byte": function (s, i, j) {
     if (i == null) {
@@ -1014,17 +1036,25 @@ lua_libs["string"] = {
   "dump": function (func) {
     not_supported();
   },
-  "find": function () {
-    // TODO
-    not_supported();
+  "find": function (s,pattern,init,plain) {
+	// TODO: finish implementation, this is just a rough estimate
+	// very basic version to find literal pattern hits without regexp, and simple regexp
+	pattern = _lua_string_translate_pattern(pattern,plain);
+	var results = (init != undefined) ? s.match(pattern,init) : s.match(pattern);
+	if (!results) return [];
+	var pos_start = s.search(results[0]);
+	var pos_end = pos_start + results[0].length - 1;
+	var res = [pos_start+1,pos_end+1];
+	for (var i=1;i<results.length;++i) res.push(results[i]);
+	return res;
   },
   "format": function (formatstring) {
     // TODO: Finish implementation
     return ["[" + slice(arguments, 1).join(", ") + "]" + arguments[0]];
   },
   "gmatch": function (s, pattern) {
-    // TODO
-    not_supported();
+	// TODO: finish implementation, this is just a rough estimate
+    return [_lua_gmatch_next, {s:s,pattern:_lua_string_translate_pattern(pattern)}, null];
   },
   "gsub": function (s, pattern, repl, n) {
     // TODO
@@ -1044,9 +1074,14 @@ lua_libs["string"] = {
       throw new Error("Input not string");
     }
   },
-  "match": function (s) {
-    // TODO
-    not_supported();
+  "match": function (s,pattern,init) {
+	// TODO: finish implementation, this is just a rough estimate
+	// very basic version to find literal pattern hits without regexp, and simple regexp
+	pattern = _lua_string_translate_pattern(pattern);
+	var results = (init != undefined) ? s.match(pattern,init) : s.match(pattern);
+	if (!results) return [];
+	if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
+	return results;
   },
   "rep": function (s, n) {
     if (typeof s == "string" && typeof n == "number") {
@@ -1100,8 +1135,16 @@ String.prototype["metatable"] = lua_newtable(null, "__index", lua_newtable2(lua_
 // table
 lua_libs["table"] = {
   "concat": function (table, sep, i, j) {
-    // TODO
-    not_supported();
+	var uints = table.uints;
+	if (uints.join == null) { // uints= object rather than array, convert (arraymode?)
+		uints = [];
+		for (var k in table.uints) uints.push(table.uints[k]);
+	}
+	if (i) {
+		if (j == null) j = uints.length;
+		uints = uints.slice(i-1,j);
+	}
+	return [uints.join(sep)];
   },
   "insert": function (table, pos, value) {
     ensure_arraymode(table);
