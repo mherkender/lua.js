@@ -679,7 +679,7 @@ function createFunction(args, body, hasVarargs) {
   var result = "(function (" + args.join(", ") + ") {\n" +
     "  var tmp;\n";
   if (hasVarargs) {
-    result += "  var varargs = lua_newtable(slice(arguments, " + args.length + "));\n";
+    result += "  var varargs = slice(arguments, " + args.length + ");\n";
   }
   return result +
     body.simple_form + "\n" +
