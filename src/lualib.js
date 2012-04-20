@@ -45,7 +45,7 @@ function ensure_notarraymode(table) {
     var newuints = {};
     for (var i in table.uints) {
       if (table.uints[i] != null) {
-        newuints[i + 1] = table.uints[i];
+        newuints[i - -1] = table.uints[i];
       }
     }
     table.uints = newuints;
