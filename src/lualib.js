@@ -473,7 +473,7 @@ function lua_tableget(table, key) {
   if (typeof h == "function") {
     return lua_rawcall(h, [table, key])[0];
   } else {
-    return lua_rawget(h, key);
+    return lua_tableget(h, key);
   }
 }
 function lua_tableset(table, key, value) {
@@ -500,7 +500,7 @@ function lua_tableset(table, key, value) {
   if (typeof h == "function") {
     lua_rawcall(h, [table, key, value]);
   } else {
-    lua_rawset(h, key, value);
+    lua_tableset(h, key, value);
   }
 }
 function lua_concat(op1, op2) {
