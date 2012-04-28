@@ -189,6 +189,9 @@ function lua_call(func, args) {
   if (typeof func == "function") {
     return lua_rawcall(func, args);
   } else {
+    if (func == null) {
+      throw new Error("attempt to call function (a nil value)");
+    }
     var h = func.metatable && func.metatable.str["__call"];
     if (h != null) {
       return lua_rawcall(h, [func].concat(args));
