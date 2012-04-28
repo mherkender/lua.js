@@ -198,7 +198,11 @@ function lua_call(func, args) {
   }
 }
 function lua_mcall(obj, methodname, args) {
-  return lua_call(lua_tableget(obj, methodname), [obj].concat(args));
+  var func = lua_tableget(obj, methodname);
+  if (func == null) {
+    throw new Error("attempt to call method '" + methodname + "' (a nil value)");
+  }
+  return lua_call(func, [obj].concat(args));
 }
 function lua_eq(op1, op2) {
   if (typeof op1 != typeof op2) {
