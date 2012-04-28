@@ -213,7 +213,7 @@ chunk
 prefixexp
   : var {
     if ($1.access) {
-      $$ = {single: "lua_tableget(" + $1.prefixexp + ", " + $1.access + ")"};
+      $$ = {single: "lua_tableget(" + $1.prefixexp + ", " + $1.access + ")", single_tableget: $1};
     } else {
       $$ = {single: $1.prefixexp};
     }
@@ -596,7 +596,13 @@ var
   ;
 
 functioncall
-  : prefixexp args { $$ = "lua_call(" + $1.single + ", " + getTempDecl($2) + ")"; } 
+  : prefixexp args {
+    if ($1.single_tableget) {
+      $$ = "lua_tablegetcall(" + $1.single_tableget.prefixexp + ", " + $1.single_tableget.access + ", " + getTempDecl($2) + ")";
+    } else {
+      $$ = "lua_call(" + $1.single + ", " + getTempDecl($2) + ")";
+    }
+  } 
   | prefixexp ":" NAME args { $$ = "lua_mcall(" + $1.single + ", '" + $3 + "', " + getTempDecl($4) + ")"; }
   ;
 

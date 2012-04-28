@@ -185,6 +185,25 @@ function lua_rawcall(func, args) {
     throw e;
   }
 }
+
+// could be replaced by lua_call(lua_tableget(table, key), args)
+// but this gives better error messages
+function lua_tablegetcall(table, key, args) {
+  var func = lua_tableget(table, key);
+  if (typeof func == "function") {
+    return lua_rawcall(func, args);
+  } else {
+    if (func == null) {
+      throw new Error("attempt to call field '" + key + "' (a nil value)");
+    }
+    var h = func.metatable && func.metatable.str["__call"];
+    if (h != null) {
+      return lua_rawcall(h, [func].concat(args));
+    } else {
+      throw new Error("Could not call " + func + " as function");
+    }
+  }
+}
 function lua_call(func, args) {
   if (typeof func == "function") {
     return lua_rawcall(func, args);
