@@ -185,10 +185,32 @@ function lua_rawcall(func, args) {
     throw e;
   }
 }
+
+// could be replaced by lua_call(lua_tableget(table, key), args)
+// but this gives better error messages
+function lua_tablegetcall(table, key, args) {
+  var func = lua_tableget(table, key);
+  if (typeof func == "function") {
+    return lua_rawcall(func, args);
+  } else {
+    if (func == null) {
+      throw new Error("attempt to call field '" + key + "' (a nil value)");
+    }
+    var h = func.metatable && func.metatable.str["__call"];
+    if (h != null) {
+      return lua_rawcall(h, [func].concat(args));
+    } else {
+      throw new Error("Could not call " + func + " as function");
+    }
+  }
+}
 function lua_call(func, args) {
   if (typeof func == "function") {
     return lua_rawcall(func, args);
   } else {
+    if (func == null) {
+      throw new Error("attempt to call function (a nil value)");
+    }
     var h = func.metatable && func.metatable.str["__call"];
     if (h != null) {
       return lua_rawcall(h, [func].concat(args));
@@ -198,7 +220,11 @@ function lua_call(func, args) {
   }
 }
 function lua_mcall(obj, methodname, args) {
-  return lua_call(lua_tableget(obj, methodname), [obj].concat(args));
+  var func = lua_tableget(obj, methodname);
+  if (func == null) {
+    throw new Error("attempt to call method '" + methodname + "' (a nil value)");
+  }
+  return lua_call(func, [obj].concat(args));
 }
 function lua_eq(op1, op2) {
   if (typeof op1 != typeof op2) {
@@ -453,7 +479,7 @@ function lua_rawset(table, key, value) {
 }
 function lua_tableget(table, key) {
   if (table == null) {
-    throw new Error("Table is null");
+    throw new Error("attempt to index field '" + key + "' in a nil value");
   }
   if (typeof table == "object") {
     var v = lua_rawget(table, key);
@@ -478,7 +504,7 @@ function lua_tableget(table, key) {
 }
 function lua_tableset(table, key, value) {
   if (table == null) {
-    throw new Error("Table is null");
+    throw new Error("attempt to set field '" + key + "' in a nil value");
   }
   if (typeof table == "object") {
     var v = lua_rawget(table, key);
@@ -811,7 +837,7 @@ lua_libs["math"] = {
     return [(Math.exp(x) + Math.exp(-x)) / 2];
   },
   "deg": function (x) {
-    return [x * (Math.PI / 180)];
+    return [x * (180 / Math.PI)];
   },
   "exp": function (x) {
     return [Math.exp(x)];
@@ -850,7 +876,7 @@ lua_libs["math"] = {
     return [Math.pow(x, y)];
   },
   "rad": function (x) {
-    return [x * (180 / Math.PI)];
+    return [x * (Math.PI / 180)];
   },
   "sin": function (x) {
     return [Math.sin(x)];
@@ -1100,8 +1126,18 @@ String.prototype["metatable"] = lua_newtable(null, "__index", lua_newtable2(lua_
 // table
 lua_libs["table"] = {
   "concat": function (table, sep, i, j) {
-    // TODO
-    not_supported();
+    ensure_arraymode(table);
+    if (sep == null) {
+      sep = "";
+    }
+    if (i != null) {
+      if (j == null) {
+        j = table.uints.length;
+      }
+      return [table.uints.slice(i - 1, j).join(sep)];
+    } else {
+      return [table.uints.join(sep)];
+    }
   },
   "insert": function (table, pos, value) {
     ensure_arraymode(table);
