@@ -850,7 +850,7 @@ lua_libs["math"] = {
     return [Math.pow(x, y)];
   },
   "rad": function (x) {
-    return [x * (180 / Math.PI)];
+    return [x * Math.PI / 180];
   },
   "sin": function (x) {
     return [Math.sin(x)];
