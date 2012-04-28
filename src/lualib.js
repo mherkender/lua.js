@@ -811,7 +811,7 @@ lua_libs["math"] = {
     return [(Math.exp(x) + Math.exp(-x)) / 2];
   },
   "deg": function (x) {
-    return [x * (Math.PI / 180)];
+    return [x * (180 / Math.PI)];
   },
   "exp": function (x) {
     return [Math.exp(x)];
@@ -850,7 +850,7 @@ lua_libs["math"] = {
     return [Math.pow(x, y)];
   },
   "rad": function (x) {
-    return [x * Math.PI / 180];
+    return [x * (Math.PI / 180)];
   },
   "sin": function (x) {
     return [Math.sin(x)];
