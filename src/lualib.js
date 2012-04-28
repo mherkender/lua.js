@@ -479,7 +479,7 @@ function lua_rawset(table, key, value) {
 }
 function lua_tableget(table, key) {
   if (table == null) {
-    throw new Error("Table is null");
+    throw new Error("attempt to index field '" + key + "' in a nil value");
   }
   if (typeof table == "object") {
     var v = lua_rawget(table, key);
@@ -504,7 +504,7 @@ function lua_tableget(table, key) {
 }
 function lua_tableset(table, key, value) {
   if (table == null) {
-    throw new Error("Table is null");
+    throw new Error("attempt to set field '" + key + "' in a nil value");
   }
   if (typeof table == "object") {
     var v = lua_rawget(table, key);
