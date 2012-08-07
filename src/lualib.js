@@ -581,7 +581,7 @@ var lua_core = {
     not_supported();
   },
   "getmetatable": function (op) {
-    return op.metatable && (op.metatable.str["__metatable"] || op.metatable);
+    return [op.metatable && (op.metatable.str["__metatable"] || op.metatable)];
   },
   "ipairs": function (table) {
     return [_ipairs_next, table, 0];
