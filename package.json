@@ -16,7 +16,6 @@
   "keywords": [
     "lua",
     "js",
-    "crazy"
   ],
   "dependencies" : {
     "jison"   :  "*"

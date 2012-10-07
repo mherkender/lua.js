@@ -56,6 +56,6 @@ tests/%.js: tests/%.lua
 	cat $@  >> /tmp/test.js
 	cp /tmp/test.js $@
 
-.PHONY: all clean test lua_tests
+.PHONY: all clean test
 
 .SUFFIXES:
