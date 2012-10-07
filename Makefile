@@ -5,23 +5,23 @@ NODE=node
 
 GENERATED_FILES=lua2js lua.js lua.as lua.min.js lua+parser.js lua+parser.min.js
 
+TESTS=$(patsubst %.lua,%.js,$(wildcard tests/*.lua))
+
 all: node_modules/jison closurecompiler/compiler.jar $(GENERATED_FILES) luajs.zip
 
 node_modules/jison:
 	npm install jison
 
-closurecompiler/compiler.jar: compiler-latest.zip
-	unzip compiler-latest.zip
-	mv compiler-latest closurecompiler
-
-compiler-latest.zip:
+closurecompiler/compiler.jar:
 	wget http://closure-compiler.googlecode.com/files/compiler-latest.zip
+	mkdir -p closurecompiler
+	unzip -o compiler-latest.zip -d closurecompiler
 
 lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
 	cat $^ > $@
 	chmod +x $@ || rm -f $@
 
-src/lua_parser.js: src/build_lua_parser.js src/lua.jison $(shell find jison)
+src/lua_parser.js: src/build_lua_parser.js src/lua.jison node_modules/jison
 	cd . && $(NODE) $<
 
 lua.js: src/lua_header.js src/lualib.js
@@ -45,7 +45,17 @@ luajs.zip: $(GENERATED_FILES)
 
 clean:
 	rm -rf $(GENERATED_FILES)
+	rm -f tests/*.js
 
-.PHONY: all clean
+test: all $(TESTS)
+	$(foreach var,$(TESTS), node $(var);)
+
+tests/%.js: tests/%.lua
+	./lua2js $< $@
+	cat lua.js > /tmp/test.js
+	cat $@  >> /tmp/test.js
+	cp /tmp/test.js $@
+
+.PHONY: all clean test
 
 .SUFFIXES:
