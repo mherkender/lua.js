@@ -1,3 +1,0 @@
-[submodule "jison"]
-	path = jison
-	url = git://github.com/zaach/jison.git

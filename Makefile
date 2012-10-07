@@ -5,7 +5,17 @@ NODE=node
 
 GENERATED_FILES=lua2js lua.js lua.as lua.min.js lua+parser.js lua+parser.min.js
 
-all: $(GENERATED_FILES) luajs.zip
+all: node_modules/jison closurecompiler/compiler.jar $(GENERATED_FILES) luajs.zip
+
+node_modules/jison:
+	npm install jison
+
+closurecompiler/compiler.jar: compiler-latest.zip
+	unzip compiler-latest.zip
+	mv compiler-latest closurecompiler
+
+compiler-latest.zip:
+	wget http://closure-compiler.googlecode.com/files/compiler-latest.zip
 
 lua2js: src/lua2js_start src/lua_parser.js src/lua2js_end
 	cat $^ > $@
