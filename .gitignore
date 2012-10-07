@@ -1,5 +1,4 @@
 *.pyc
-.*
 src/lua_parser.js
 lua2js
 lua.as
@@ -12,3 +11,4 @@ luajs.zip
 latest-compiler.zip
 node_modules
 closurecompiler
+tests/*.js
