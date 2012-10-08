@@ -7,7 +7,7 @@
     "lua2js": "./lua2js"
   },
   "scripts": {
-    "test": "./mode_modules/mocha/bin/mocha test.js"
+    "test": "./node_modules/mocha/bin/mocha test.js"
   },
   "repository": {
     "type": "git",
