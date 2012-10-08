@@ -48,7 +48,6 @@ clean:
 	rm -f tests/*.js
 
 test: all $(TESTS)
-	$(foreach var,$(TESTS), node $(var);)
 
 tests/%.js: tests/%.lua
 	./lua2js $< $@
