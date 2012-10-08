@@ -1,3 +1,1 @@
--- the first program in every language
-
-print("Hello world")
+print("Hello lua")
