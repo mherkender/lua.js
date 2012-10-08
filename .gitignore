@@ -8,7 +8,7 @@ lua+parser.as
 lua+parser.js
 lua+parser.min.js
 luajs.zip
-latest-compiler.zip
+compiler-latest.zip
 node_modules
 closurecompiler
 tests/*.js
