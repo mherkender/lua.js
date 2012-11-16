@@ -384,6 +384,18 @@ function lua_mod(op1, op2) {
     }
   }
 }
+var kFUNCS = 0; // Non-boolean key
+function rawget_table(table, key)
+{
+  if (key == null) {
+	throw new Error("Table index is nil");
+  }
+  for (var i in table) {
+	if (table[i][0] == key) {
+	  return table[i][1];
+	}
+  }
+}
 function lua_rawget(table, key) {
   switch (typeof key) {
     case "string":
@@ -404,17 +416,36 @@ function lua_rawget(table, key) {
     case "boolean":
       return table.bool[key];
     case "object":
-      if (key == null) {
-        throw new Error("Table index is nil");
-      }
-      for (var i in table.objs) {
-        if (table.objs[i][0] == key) {
-          return table.objs[i][1];
-        }
-      }
+	  return rawget_table(table.objs, key);
+	break;
+	case "function":
+	  if (table.bool[kFUNCS] != null) {
+	    return rawget_table(table.bool[kFUNCS], key);
+	  }
 	break;
     default:
       throw new Error("Unsupported key for table: " + (typeof key));
+  }
+}
+function rawset_table(table, key, value)
+{
+  if (key == null) {
+	throw new Error("Table index is nil");
+  }
+  var bFound = false;
+  for (var i in table) {
+	if (table[i][0] == key) {
+	  if (value == null) {
+		table.splice(i,1); // remove element [i]
+	  } else {
+		bFound = true;
+		table[i][1] = value; // modifiy/overwrite existing entry
+	  }
+	  break;
+	}
+  }
+  if (!bFound) {
+	table.push([key,value]); // add new entry
   }
 }
 function lua_rawset(table, key, value) {
@@ -454,25 +485,12 @@ function lua_rawset(table, key, value) {
       }
       break;
     case "object":
-      if (key == null) {
-        throw new Error("Table index is nil");
-      }
-      var bFound = false;
-      for (var i in table.objs) {
-        if (table.objs[i][0] == key) {
-          if (value == null) {
-            table.objs.splice(i,1); // remove element [i]
-          } else {
-            bFound = true;
-            table.objs[i][1] = value; // modifiy/overwrite existing entry
-          }
-          break;
-        }
-      }
-      if (!bFound) {
-        table.objs.push([key,value]); // add new entry
-      }
+	  rawset_table(table.objs, key, value);
       break;
+	case "function":
+	  table.bool[kFUNCS] = table.bool[kFUNCS] || [];
+	  rawset_table(table.bool[kFUNCS], key, value);
+	  break;
     default:
       throw new Error("Unsupported key for table: " + (typeof key));
   }
@@ -558,6 +576,12 @@ function _ipairs_next(table, index) {
   return [index + 1, entry];
 }
 var lua_libs = {};
+var tostring_id = 0;
+function get_id (e) {
+	e.id = e.id || tostring_id++;
+
+	return e.id;
+}
 var lua_core = {
   "assert": function (value, message) {
     if (arguments.length < 1) {
@@ -721,9 +745,9 @@ var lua_core = {
         case "string":
           return [e];
         case "object":
-          return ["table"];
+          return ["table" + get_id(e)];
         case "function":
-          return ["function"];
+          return ["function" + get_id(e)];
         default:
           return ["nil"];
       }
