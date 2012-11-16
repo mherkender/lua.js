@@ -660,7 +660,11 @@ var lua_core = {
     for (i in table.objs) {
       props.push(table.objs[i][0]);
     }
-
+	var funcs = table.bool[kFUNCS]
+    for (i in funcs) {
+	  props.push(funcs[i][0]);
+	}
+	
     // okay, so I'm faking it here
     // regardless of what key is given, this function will return the next value
     // not sure how to do it the "right way" right now
