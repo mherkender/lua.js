@@ -31,8 +31,9 @@ function lua_load(chunk, chunkname) {
   var fn;
   eval(
     "fn = function " + (chunkname || "load") + "() {\n" +
+    "return (function () {\n" +
     lua_parser.parse(chunk) + "\n" +
-    "  return G;\n" +// thanks to deltaflux, for finding the bug that revealed that this line was missing
+    "})()[0];\n" +
     "};");
   return fn;
 }

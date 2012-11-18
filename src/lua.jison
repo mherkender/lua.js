@@ -117,7 +117,8 @@ script
       "};\n" +
       "{\n" +
       $2.simple_form + "\n" +
-      "}\n";
+      "};\n" +
+      "return [G];";
   }
   ;
 
