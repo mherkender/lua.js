@@ -270,6 +270,7 @@ stat
   }
   | LOCAL namelist "=" explist {
     var tmp;
+    $2 = setLocals($2);
     if ($2.length == 1) {
       // avoid tmp entirely for certain situations
       if ($4.exps.length == 1) {
@@ -286,7 +287,7 @@ stat
     }
     $$ = {simple_form: tmp};
   }
-  | LOCAL namelist { $$ = {simple_form: "var " + $2.join(", ") + ";"}; }
+  | LOCAL namelist { $$ = {simple_form: "var " + setLocals($2).join(", ") + ";"}; }
   | functioncall { $$ = {simple_form: $1 + ";"}; }
   | DO block END {
     $$ = {simple_form: "// do\n" + $2.simple_form + "\n// end"};
@@ -299,7 +300,7 @@ stat
   | IF conds END {
     $$ = $2
   }
-  | FOR indent namelist "=" exp "," exp DO loopblock unindent END {
+  | FOR indent namelist_setlocals "=" exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
@@ -319,7 +320,7 @@ stat
         "\n}"};
     }
   }
-  | FOR indent namelist "=" exp "," exp "," exp DO loopblock unindent END {
+  | FOR indent namelist_setlocals "=" exp "," exp "," exp DO loopblock unindent END {
     if ($3.length != 1) {
       throw new Error("Only one value allowed in for..= loop");
     }
@@ -342,7 +343,7 @@ stat
     }
     $$ = {simple_form: tmp};
   }
-  | FOR indent namelist IN explist DO loopblock unindent END {
+  | FOR indent namelist_setlocals IN explist DO loopblock unindent END {
     var tmp;
     tmp = "tmp = " + getTempDecl($5) + ";\n" +
       "var f_" + $2 + " = tmp[0], " +
@@ -467,9 +468,14 @@ explist
   | exp { $$ = {exps: [$1.single], endmulti: $1.endmulti}; }
   ;
 
-namelist
-  : namelist "," NAME { $$ = $1.concat([setLocal($3)]); }
+namelist_setlocals
+  : namelist_setlocals "," NAME { $$ = $1.concat([setLocal($3)]); }
   | NAME { $$ = [setLocal($1)]; }
+  ;
+
+namelist
+  : namelist "," NAME { $$ = $1.concat([$3]); }
+  | NAME { $$ = [$1]; }
   ;
 
 arglist
@@ -664,6 +670,14 @@ function getLocal(name, alternative) {
 
 function setLocal(name, localName) {
   return locals[name] = localName || "_" + name + "_" + blockId;
+}
+
+function setLocals(names) {
+  var result = []
+  for (var i = 0; i < names.length; i++) {
+    result[i] = setLocal(names[i]);
+  }
+  return result;
 }
 
 function getTempDecl(explist) {
