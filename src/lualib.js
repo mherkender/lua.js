@@ -630,7 +630,7 @@ var lua_core = {
     for (i in table.floats) {
       props.push(parseFloat(i));
     }
-    for (i in table.bools) {
+    for (i in table.bool) {
       props.push(i === "true" ? true : false);
     }
     for (i in table.objs) {
