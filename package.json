@@ -6,6 +6,14 @@
   "bin": {
     "lua2js": "./lua2js"
   },
+  "files": [
+    "lua2js",
+    "lua.js",
+    "lua.as",
+    "lua.min.js",
+    "lua+parser.js",
+    "lua+parser.min.js"
+  ],
   "scripts": {
     "test": "make test && ./node_modules/mocha/bin/mocha test.js"
   },
@@ -17,10 +25,8 @@
     "lua",
     "js"
   ],
-  "dependencies" : {
-    "jison"   :  "*"
-  },
   "devDependencies" : {
+    "jison"   :  "*",
     "mocha"   :  "*"
   },
   "license": "MIT",
