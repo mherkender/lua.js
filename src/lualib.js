@@ -564,7 +564,7 @@ var lua_core = {
       message = "assertion failed!";
     }
     if (value != null && value !== false) {
-      return value;
+      return [value];
     } else {
       throw new Error(message);
     }
@@ -581,7 +581,7 @@ var lua_core = {
     not_supported();
   },
   "getmetatable": function (op) {
-    return op.metatable && (op.metatable.str["__metatable"] || op.metatable);
+    return [op.metatable && (op.metatable.str["__metatable"] || op.metatable)];
   },
   "ipairs": function (table) {
     return [_ipairs_next, table, 0];
@@ -630,7 +630,7 @@ var lua_core = {
     for (i in table.floats) {
       props.push(parseFloat(i));
     }
-    for (i in table.bools) {
+    for (i in table.bool) {
       props.push(i === "true" ? true : false);
     }
     for (i in table.objs) {
@@ -677,8 +677,17 @@ var lua_core = {
     }
     throw new Error("Unable set key " + key + " in " + table);
   },
-  "select": function () {
-    not_supported();
+  "select": function (n) {
+    if (n === "#") {
+      return [arguments.length - 1];
+    } else {
+      n = lua_assertfloat(n);
+      if (n >= 1) {
+        return slice(arguments, lua_assertfloat(n));
+      } else {
+        throw new Error("Index out of range");
+      }
+    }
   },
   "setfenv": function (func, table) {
     not_supported();
