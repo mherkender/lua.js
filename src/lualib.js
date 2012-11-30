@@ -677,8 +677,17 @@ var lua_core = {
     }
     throw new Error("Unable set key " + key + " in " + table);
   },
-  "select": function () {
-    not_supported();
+  "select": function (n) {
+    if (n === "#") {
+      return [arguments.length - 1];
+    } else {
+      n = lua_assertfloat(n);
+      if (n >= 1) {
+        return slice(arguments, lua_assertfloat(n));
+      } else {
+        throw new Error("Index out of range");
+      }
+    }
   },
   "setfenv": function (func, table) {
     not_supported();
