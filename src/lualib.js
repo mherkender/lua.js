@@ -662,7 +662,7 @@ var lua_core = {
   },
   "print": lua_print,
   "rawequal": function (op1, op2) {
-    return (op1 == op2) || (op1 == null && op2 == null);
+    return [(op1 == op2) || (op1 == null && op2 == null)];
   },
   "rawget": function (table, key) {
     if (typeof table == "object" && table != null) {
