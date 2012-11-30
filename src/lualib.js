@@ -405,7 +405,7 @@ function lua_rawget(table, key) {
       return table.bool[key];
     case "object":
       if (key == null) {
-        throw new Error("Table index is nil");
+        return null;
       }
       for (var i in table.objs) {
         if (table.objs[i][0] == key) {
@@ -665,7 +665,7 @@ var lua_core = {
     return (op1 == op2) || (op1 == null && op2 == null);
   },
   "rawget": function (table, key) {
-    if (typeof table == "object" && table != null && key != null) {
+    if (typeof table == "object" && table != null) {
       return [lua_rawget(table, key)];
     }
     throw new Error("Unable to index key " + key + " from " + table);
