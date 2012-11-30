@@ -564,7 +564,7 @@ var lua_core = {
       message = "assertion failed!";
     }
     if (value != null && value !== false) {
-      return value;
+      return [value];
     } else {
       throw new Error(message);
     }
