@@ -55,7 +55,7 @@ clean_all: clean
 
 test: $(TESTS)
 
-tests/%.js: lua2js tests/%.lua
+tests/%.js: tests/%.lua lua2js lua.js
 	./lua2js $< $@
 	cat lua.js > /tmp/test.js
 	cat $@  >> /tmp/test.js
