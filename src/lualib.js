@@ -662,7 +662,7 @@ var lua_core = {
   },
   "print": lua_print,
   "rawequal": function (op1, op2) {
-    return (op1 == op2) || (op1 == null && op2 == null);
+    return [(op1 == op2) || (op1 == null && op2 == null)];
   },
   "rawget": function (table, key) {
     if (typeof table == "object" && table != null) {
@@ -1175,14 +1175,22 @@ lua_libs["table"] = {
     }
   },
   "remove": function (table, pos) {
-    // TODO: This will probably mess up if pos is not valid
     ensure_arraymode(table);
-    var value = table.uints[pos - 1];
-    table.uints.splice(pos - 1, 1);
-    if (table.length != null) {
-      table.length--;
+    if (pos == null) {
+      pos = table.uints.length;
+    } else {
+      pos = lua_assertfloat(pos);
     }
-    return [value];
+    if (table.uints.length) {
+      var value = table.uints[pos - 1];
+      table.uints.splice(pos - 1, 1);
+      if (table.length != null) {
+        table.length--;
+      }
+      return [value];
+    } else {
+      return [];
+    }
   },
   "sort": function (table, comp) {
     ensure_arraymode(table)
@@ -1224,26 +1232,26 @@ lua_libs["bit"] = {
   "bnot": function (x) {
     return [~x];
   },
-  "bor": function () {
-    var result = 0;
-    for (var i = 0; i < arguments.length; i++) {
-      result |= arguments[i];
+  "bor": function (x) {
+    x = lua_assertfloat(x);
+    for (var i = 1; i < arguments.length; i++) {
+      x |= arguments[i];
     }
-    return [result];
+    return [x];
   },
   "band": function (x) {
-    var result = 0;
-    for (var i = 0; i < arguments.length; i++) {
-      result &= arguments[i];
+    x = lua_assertfloat(x);
+    for (var i = 1; i < arguments.length; i++) {
+      x &= arguments[i];
     }
-    return [result];
+    return [x];
   },
   "bxor": function (x) {
-    var result = 0;
-    for (var i = 0; i < arguments.length; i++) {
-      result ^= arguments[i];
+    x = lua_assertfloat(x);
+    for (var i = 1; i < arguments.length; i++) {
+      x ^= arguments[i];
     }
-    return [result];
+    return [x];
   },
   "lshift": function (x, n) {
     return [x << n];
