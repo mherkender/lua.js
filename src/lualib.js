@@ -1175,14 +1175,22 @@ lua_libs["table"] = {
     }
   },
   "remove": function (table, pos) {
-    // TODO: This will probably mess up if pos is not valid
     ensure_arraymode(table);
-    var value = table.uints[pos - 1];
-    table.uints.splice(pos - 1, 1);
-    if (table.length != null) {
-      table.length--;
+    if (pos == null) {
+      pos = table.uints.length;
+    } else {
+      pos = lua_assertfloat(pos);
     }
-    return [value];
+    if (table.uints.length) {
+      var value = table.uints[pos - 1];
+      table.uints.splice(pos - 1, 1);
+      if (table.length != null) {
+        table.length--;
+      }
+      return [value];
+    } else {
+      return [];
+    }
   },
   "sort": function (table, comp) {
     ensure_arraymode(table)
