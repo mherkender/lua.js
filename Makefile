@@ -48,7 +48,7 @@ luajs.zip: $(GENERATED_FILES)
 
 clean:
 	rm -rf $(GENERATED_FILES) src/lua_parser.js compiler-latest.zip luajs.zip
-	rm -f tests/*.js
+	rm -f tests/*.js tests/*.tmp
 
 clean_all: clean
 	rm -rf node_modules/jison closurecompiler
@@ -56,10 +56,9 @@ clean_all: clean
 test: $(TESTS)
 
 tests/%.js: tests/%.lua lua2js lua.js
-	$(NODE) lua2js $< $@
-	cat lua.js > /tmp/test.js
-	cat $@  >> /tmp/test.js
-	cp /tmp/test.js $@
+	$(NODE) lua2js $< $@.tmp
+	cat lua.js $@.tmp > $@
+	rm $@.tmp
 
 .PHONY: build clean test all
 
