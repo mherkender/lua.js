@@ -503,11 +503,41 @@ exp
   | FUNCTION funcbody {
     $$ = {single: $2};
   }
-  | exp "+" exp { $$ = {single: 'lua_add(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "-" exp { $$ = {single: 'lua_subtract(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "*" exp { $$ = {single: 'lua_multiply(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "/" exp { $$ = {single: 'lua_divide(' + $1.single + ', ' + $3.single + ')'}; }
-  | exp "^" exp { $$ = {single: 'lua_power(' + $1.single + ', ' + $3.single + ')'}; }
+  | exp "+" exp {
+    if ($1.is_number && $3.is_number) {
+      $$ = {single: '(' + $1.single + ' + ' + $3.single + ')', is_number: true};
+    } else {
+      $$ = {single: 'lua_add(' + $1.single + ', ' + $3.single + ')'};
+    }
+  }
+  | exp "-" exp {
+    if ($1.is_number && $3.is_number) {
+      $$ = {single: '(' + $1.single + ' - ' + $3.single + ')', is_number: true};
+    } else {
+      $$ = {single: 'lua_subtract(' + $1.single + ', ' + $3.single + ')'};
+    }
+  }
+  | exp "*" exp {
+    if ($1.is_number && $3.is_number) {
+      $$ = {single: '(' + $1.single + ' * ' + $3.single + ')', is_number: true};
+    } else {
+      $$ = {single: 'lua_multiply(' + $1.single + ', ' + $3.single + ')'};
+    }
+  }
+  | exp "/" exp {
+    if ($1.is_number && $3.is_number) {
+      $$ = {single: '(' + $1.single + ' / ' + $3.single + ')', is_number: true};
+    } else {
+      $$ = {single: 'lua_divide(' + $1.single + ', ' + $3.single + ')'};
+    }
+  }
+  | exp "^" exp {
+    if ($1.is_number && $3.is_number) {
+      $$ = {single: 'Math.pow(' + $1.single + ', ' + $3.single + ')', is_number: true};
+    } else {
+      $$ = {single: 'lua_power(' + $1.single + ', ' + $3.single + ')'};
+    }
+  }
   | exp "%" exp { $$ = {single: 'lua_mod(' + $1.single + ', ' + $3.single + ')'}; }
   | exp ".." exp { $$ = {single: 'lua_concat(' + $1.single + ', ' + $3.single + ')'}; }
   | exp "<" exp {
@@ -558,7 +588,7 @@ exp
       simple_form: '(' + getIfExp($1) + ' || ' + getIfExp($3) + ')'
     };
   }
-  | "-" exp { $$ = {single: $2.is_number ? ('-' + $2.single) : ('lua_unm(' + $2.single + ')')}; }
+  | "-" exp { $$ = {single: $2.is_number ? ('-' + $2.single) : ('lua_unm(' + $2.single + ')'), is_number: $2.is_number}; }
   | NOT exp {
     $$ = {
       single: 'lua_not(' + $2.single + ')',
