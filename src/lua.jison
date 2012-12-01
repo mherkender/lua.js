@@ -399,8 +399,8 @@ stat
     }
     $$ = {simple_form: "lua_tableset(" + tmp + ", '" + $4 + "', " + $5 + ")"};
   }
-  | LOCAL FUNCTION NAME funcbody {
-    $$ = {simple_form: "var " + getLocal($3) + " = " + $4 + ";"};
+  | LOCAL FUNCTION name_setlocals funcbody {
+    $$ = {simple_form: "var " + $3 + " = " + $4 + ";"};
   }
   ;
 
@@ -476,6 +476,10 @@ namelist_setlocals
 namelist
   : namelist "," NAME { $$ = $1.concat([$3]); }
   | NAME { $$ = [$1]; }
+  ;
+
+name_setlocals
+  : NAME { $$ = setLocal($1); } 
   ;
 
 arglist
