@@ -53,6 +53,7 @@ function ensure_notarraymode(table) {
   }
 }
 
+/** @constructor */
 function ReturnValues(vars) {
   this.vars = vars || [];
 }
