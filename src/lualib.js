@@ -1224,26 +1224,26 @@ lua_libs["bit"] = {
   "bnot": function (x) {
     return [~x];
   },
-  "bor": function () {
-    var result = 0;
-    for (var i = 0; i < arguments.length; i++) {
-      result |= arguments[i];
+  "bor": function (x) {
+    x = lua_assertfloat(x);
+    for (var i = 1; i < arguments.length; i++) {
+      x |= arguments[i];
     }
-    return [result];
+    return [x];
   },
   "band": function (x) {
-    var result = 0;
-    for (var i = 0; i < arguments.length; i++) {
-      result &= arguments[i];
+    x = lua_assertfloat(x);
+    for (var i = 1; i < arguments.length; i++) {
+      x &= arguments[i];
     }
-    return [result];
+    return [x];
   },
   "bxor": function (x) {
-    var result = 0;
-    for (var i = 0; i < arguments.length; i++) {
-      result ^= arguments[i];
+    x = lua_assertfloat(x);
+    for (var i = 1; i < arguments.length; i++) {
+      x ^= arguments[i];
     }
-    return [result];
+    return [x];
   },
   "lshift": function (x, n) {
     return [x << n];
