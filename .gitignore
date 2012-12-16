@@ -12,3 +12,4 @@ compiler-latest.zip
 node_modules
 closurecompiler
 tests/*.js
+tests/*.js.tmp
