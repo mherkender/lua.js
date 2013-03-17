@@ -284,7 +284,7 @@ function lua_lte(op1, op2) {
 }
 function lua_unm(op) {
   var o = parseFloat(op);
-  if (o != null) {
+  if (!isNaN(o)) {
     return -o;
   } else {
     var h = op.metatable && op.metatable.str["__unm"];
@@ -297,7 +297,7 @@ function lua_unm(op) {
 }
 function lua_add(op1, op2) {
   var o1 = parseFloat(op1), o2 = parseFloat(op2);
-  if (o1 == null || o2 == null) {
+  if (isNaN(o1) || isNaN(o2)) {
     var h = (op1.metatable && op1.metatable.str["__add"]) || (op2.metatable && op2.metatable.str["__add"]);
     if (h) {
       return lua_rawcall(h, [op1, op2])[0];
@@ -310,7 +310,7 @@ function lua_add(op1, op2) {
 }
 function lua_subtract(op1, op2) {
   var o1 = parseFloat(op1), o2 = parseFloat(op2);
-  if (o1 == null || o2 == null) {
+  if (isNaN(o1) || isNaN(o2)) {
     var h = (op1.metatable && op1.metatable.str["__sub"]) || (op2.metatable && op2.metatable.str["__sub"]);
     if (h) {
       return lua_rawcall(h, [op1, op2])[0];
@@ -323,7 +323,7 @@ function lua_subtract(op1, op2) {
 }
 function lua_divide(op1, op2) {
   var o1 = parseFloat(op1), o2 = parseFloat(op2);
-  if (o1 == null || o2 == null) {
+  if (isNaN(o1) || isNaN(o2)) {
     var h = (op1.metatable && op1.metatable.str["__div"]) || (op2.metatable && op2.metatable.str["__div"]);
     if (h) {
       return lua_rawcall(h, [op1, op2])[0];
@@ -336,7 +336,7 @@ function lua_divide(op1, op2) {
 }
 function lua_multiply(op1, op2) {
   var o1 = parseFloat(op1), o2 = parseFloat(op2);
-  if (o1 == null || o2 == null) {
+  if (isNaN(o1) || isNaN(o2)) {
     var h = (op1.metatable && op1.metatable.str["__mul"]) || (op2.metatable && op2.metatable.str["__mul"]);
     if (h) {
       return lua_rawcall(h, [op1, op2])[0];
@@ -349,7 +349,7 @@ function lua_multiply(op1, op2) {
 }
 function lua_power(op1, op2) {
   var o1 = parseFloat(op1), o2 = parseFloat(op2);
-  if (o1 == null || o2 == null) {
+  if (isNaN(o1) || isNaN(o2)) {
     var h = (op1.metatable && op1.metatable.str["__pow"]) || (op2.metatable && op2.metatable.str["__pow"]);
     if (h) {
       return lua_rawcall(h, [op1, op2])[0];
@@ -362,7 +362,7 @@ function lua_power(op1, op2) {
 }
 function lua_mod(op1, op2) {
   var o1 = parseFloat(op1), o2 = parseFloat(op2);
-  if (o1 == null || o2 == null) {
+  if (isNaN(o1) || isNaN(o2)) {
     var h = (op1.metatable && op1.metatable.str["__mod"]) || (op2.metatable && op2.metatable.str["__mod"]);
     if (h) {
       return lua_rawcall(h, [op1, op2])[0];
