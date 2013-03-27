@@ -977,7 +977,7 @@ lua_libs["os"] = {
     if (table) {
       not_supported();
     } else {
-      return [new Date().getTime()]; // thanks ghoulsblade
+      return [Math.floor(new Date().getTime() / 1000)];
     }
   }
 };
