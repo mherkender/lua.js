@@ -923,11 +923,14 @@ lua_libs["math"] = {
     }
 
     if (arguments.length >= 2) {
+      m = m | 0;
+      n = n | 0;
       if (m >= n) {
         throw new Error("Invalid range");
       }
       return [Math.floor(val * (n - m + 1) + m)];
     } else if (arguments.length == 1) {
+      m = m | 0;
       return [Math.floor(val * m + 1)];
     } else {
       return [val];
