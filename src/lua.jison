@@ -202,7 +202,7 @@ chunk
       $$.varfix_form = indentStatlist($1.varfix_form);
     }
   }
-  | statlist laststat {
+  | statlist laststat semi {
     $$ = {simple_form: indentStatlist($1.simple_form, $2.simple_form)};
     if ($1.varfix_form || $2.varfix_form) {
       $$.varfix_form = indentStatlist(
