@@ -122,7 +122,7 @@ function lua_newtable(autoIndexList) {
           }
         }
         if (!bFound) {
-          result.objs.push([key,value]); // add new entry
+          result.objs.push([key, value]); // add new entry
         }
         break;
       default:
@@ -462,7 +462,7 @@ function lua_rawset(table, key, value) {
       for (var i in table.objs) {
         if (table.objs[i][0] == key) {
           if (value == null) {
-            table.objs.splice(i,1); // remove element [i]
+            table.objs.splice(i, 1); // remove element [i]
           } else {
             bFound = true;
             table.objs[i][1] = value; // modifiy/overwrite existing entry
@@ -471,7 +471,7 @@ function lua_rawset(table, key, value) {
         }
       }
       if (!bFound) {
-        table.objs.push([key,value]); // add new entry
+        table.objs.push([key, value]); // add new entry
       }
       break;
     default:
