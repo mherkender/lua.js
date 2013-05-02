@@ -107,7 +107,7 @@ function lua_newtable(autoIndexList) {
         if (key == null) {
           throw new Error("Table index is nil");
         }
-        var bFound = false;
+        var bFound = (value == null);
         for (var i in result.objs) {
           if (result.objs[i][0] === key) {
             if (value == null) {
@@ -458,7 +458,7 @@ function lua_rawset(table, key, value) {
       if (key == null) {
         throw new Error("Table index is nil");
       }
-      var bFound = false;
+      var bFound = (value == null);
       for (var i in table.objs) {
         if (table.objs[i][0] == key) {
           if (value == null) {
