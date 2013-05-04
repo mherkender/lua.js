@@ -53,6 +53,17 @@ function ensure_notarraymode(table) {
   }
 }
 
+function check_string(s) {
+  var type = typeof s;
+  if (type == "string") {
+    return s;
+  } else if(type == "number") {
+    return s.toString();
+  } else {
+    throw new Error("Input not string");
+  }
+}
+
 /** @constructor */
 function ReturnValues(vars) {
   this.vars = vars || [];
@@ -1070,25 +1081,18 @@ lua_libs["string"] = {
     not_supported();
   },
   "len": function (s) {
-    if (typeof s == "string") {
-      return [s.length];
-    } else {
-      throw new Error("Input not string");
-    }
+    return [check_string(s).length];
   },
   "lower": function (s) {
-    if (typeof s == "string") {
-      return [s.toLowerCase()];
-    } else {
-      throw new Error("Input not string");
-    }
+    return [check_string(s).toLowerCase()];
   },
   "match": function (s) {
     // TODO
     not_supported();
   },
   "rep": function (s, n) {
-    if (typeof s == "string" && typeof n == "number") {
+    s = check_string(s);
+    if (typeof n == "number") {
       var result = [];
       while (n-- > 0) {
         result.push(s);
@@ -1099,11 +1103,7 @@ lua_libs["string"] = {
     }
   },
   "reverse": function (s) {
-    if (typeof s == "string") {
-      return [s.split("").reverse().join("")];
-    } else {
-      throw new Error("Input not string");
-    }
+    return [check_string(s).split("").reverse().join("")];
   },
   "sub": function (s, i, j) {
     // thanks to ghoulsblade for pointing out the bugs in string.sub
@@ -1125,11 +1125,7 @@ lua_libs["string"] = {
     }
   },
   "upper": function (s) {
-    if (typeof s == "string") {
-      return [s.toUpperCase()];
-    } else {
-      throw new Error("Input not string");
-    }
+    return [check_string(s).toUpperCase()];
   }
 };
 
