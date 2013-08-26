@@ -57,7 +57,7 @@ function check_string(s) {
   var type = typeof s;
   if (type == "string") {
     return s;
-  } else if(type == "number") {
+  } else if (type == "number") {
     return s.toString();
   } else {
     throw new Error("Input not string");
@@ -735,7 +735,7 @@ var lua_core = {
     if (h) {
       return lua_rawcall(h, [e]);
     } else {
-      switch (typeof(e)) {
+      switch (typeof e) {
         case "number":
         case "boolean":
           return [e.toString()];
