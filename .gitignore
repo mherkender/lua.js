@@ -13,3 +13,5 @@ node_modules
 closurecompiler
 tests/*.js
 tests/*.js.tmp
+
+/GitIgnore

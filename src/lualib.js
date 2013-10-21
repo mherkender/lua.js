@@ -1064,9 +1064,26 @@ lua_libs["string"] = {
   "dump": function (func) {
     not_supported();
   },
-  "find": function () {
-    // TODO
-    not_supported();
+  "find": function (s, pattern, index, plain) {
+    if (index == null)
+      index = 0;
+    if (index < 0)
+      index = s.length + index;
+    
+    /*if (plain != true) {
+      var match = s:match(pattern, index)
+      if (match != nil )
+        pattern = match;
+      else
+        return [null];
+    }*/
+
+    var start = s.indexOf(pattern, index);
+    
+    if (start == -1)
+      return [null];
+    else
+      return [start+1, start+pattern.length];
   },
   "format": function (formatstring) {
     // TODO: Finish implementation
