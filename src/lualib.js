@@ -1093,6 +1093,17 @@ function luareplacement_to_regex( pattern ) {
   return pattern.replace(/%([0-9]+)/g, "$$$1");
 }
 
+function lua_gmatch_next(data) {
+  var match = data.s.match(pattern);
+  if (match == null) 
+    return "";
+  match = match[0];
+  var matchStartPos = data.s.search(match);
+  data.s = data.s.substr(matchStartPos+match.length);
+  // if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
+  return match;
+}
+
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
@@ -1146,8 +1157,8 @@ lua_libs["string"] = {
     return ["[" + slice(arguments, 1).join(", ") + "]" + arguments[0]];
   },
   "gmatch": function (s, pattern) {
-    // TODO
-    not_supported();
+    s = check_string(s);
+    return [lua_gmatch_next, {s:s, pattern:luapattern_to_regex(pattern)}]
   },
   "gsub": function (s, pattern, repl, n) {
     var newS = check_string(s);
