@@ -1043,6 +1043,38 @@ lua_libs["package"] = {
   }
 };
 
+function luapattern_to_regex( pattern ) {
+  var replacements = {
+    // character classes, metacharacters
+
+    "%a": "[a-zA-Z]", // all letters what about wharacters with accent or special letter like ç
+    "%l": "[a-z]", 
+    "%u": "[A-Z]", 
+    "%d": "\\d", // all digit
+    "%p": "[,\?;\.:/!]", // all punctuation
+    "%s": "[ \t]", // all space characters   are \r, \n, etc.. space characters ?
+    "%w": "\\w", 
+    // "%g": "\\w", // all printable characters except space.
+    // "%c": "\\w", // Control character ?
+
+    // pattern items, quantifiers
+    "\\]-": "]*",
+    "-\\)": "*)",
+    "%([0-9]){1}": "{$1}",
+    "%f\\[([^\\]]+)\\]": "[^$1]{1}[$1]{1}", // frontier pattern
+  }
+  
+  for (var luaExp in replacements) {
+    pattern = pattern.replace(new RegExp(luaExp, "g"), replacements[luaExp]);
+  }
+
+  return pattern;
+}
+
+function luareplacement_to_regex( pattern ) {
+  return pattern.replace(/%([0-9]+)/g, "$$$1");
+}
+
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
