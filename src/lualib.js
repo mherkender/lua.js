@@ -1168,9 +1168,14 @@ lua_libs["string"] = {
   "lower": function (s) {
     return [check_string(s).toLowerCase()];
   },
-  "match": function (s) {
-    // TODO
-    not_supported();
+  "match": function (s, pattern, index) {
+    if (index == undefined)
+      index = 1;
+    else if (index < 0)
+      index = s.length + index;
+    index = index-1;
+    pattern = luapattern_to_regex(pattern);
+    return s.substr(index).match(new RegExp(pattern, "g"));
   },
   "rep": function (s, n) {
     s = check_string(s);
