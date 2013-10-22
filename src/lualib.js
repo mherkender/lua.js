@@ -1115,6 +1115,7 @@ lua_libs["string"] = {
     not_supported();
   },
   "find": function (s, pattern, index, plain) {
+    s = check_string(s);
     if (index == undefined)
       index = 1;
     else if (index < 0)
@@ -1149,8 +1150,8 @@ lua_libs["string"] = {
     not_supported();
   },
   "gsub": function (s, pattern, repl, n) {
-    var newS = s;
-    var oldS = s;
+    var newS = check_string(s);
+    var oldS = newS;
     pattern = luapattern_to_regex(pattern);
     repl = luareplacement_to_regex(repl);
     n = Number(n); // NaN if n == undefined
@@ -1161,9 +1162,12 @@ lua_libs["string"] = {
 
     var i = s.search(regex);
     while (i > 0) {
-      var searchS = newS.substr(offset); // searchS the string in whih we will search and replace the pattern
+      var searchS = newS.substr(offset); 
+      // searchS the portion of the string in which we will search and replace the pattern
+      // offset is the position in newS of the first character of the portion that hasn't been modified yet
+
       // doing the replacement in a portion of the input string is necessary to match Lua's gsub() behavior
-      // which search for the pattern, replace then move forward and never looks back
+      // which search for the pattern, replace then move forward and never look back
 
       var matches = searchS.match(regex);
       if (matches == null)
@@ -1192,6 +1196,7 @@ lua_libs["string"] = {
     return [check_string(s).toLowerCase()];
   },
   "match": function (s, pattern, index) {
+    s = check_string(s);
     if (index == undefined)
       index = 1;
     else if (index < 0)
