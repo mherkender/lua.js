@@ -1094,8 +1094,27 @@ lua_libs["string"] = {
     not_supported();
   },
   "gsub": function (s, pattern, repl, n) {
-    // TODO
-    not_supported();
+    // TODO : add pattern (regex) matching
+    var newS = s;
+    var oldS = s;
+    n = Number(n); // NaN if n == undefined
+
+    var replCount = 0;
+    while (true) {
+      newS = oldS.replace(pattern, repl);
+      
+      if (newS != oldS) {
+        oldS = newS;
+        replCount++;
+      }
+      else
+        break;
+
+      if (!isNaN(n) && replCount >= n)
+        break;
+    }
+
+    return [newS, replCount];
   },
   "len": function (s) {
     return [check_string(s).length];
