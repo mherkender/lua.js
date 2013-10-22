@@ -1126,21 +1126,35 @@ lua_libs["string"] = {
     not_supported();
   },
   "gsub": function (s, pattern, repl, n) {
-    // TODO : add pattern (regex) matching
     var newS = s;
     var oldS = s;
+    pattern = luapattern_to_regex(pattern);
+    repl = luareplacement_to_regex(repl);
     n = Number(n); // NaN if n == undefined
 
     var replCount = 0;
-    while (true) {
-      newS = oldS.replace(pattern, repl);
-      
-      if (newS != oldS) {
-        oldS = newS;
-        replCount++;
-      }
-      else
+    var offset = 0;
+    var regex = new RegExp(pattern);
+
+    var i = s.search(regex);
+    while (i > 0) {
+      var searchS = newS.substr(offset); // searchS the string in whih we will search and replace the pattern
+      // doing the replacement in a portion of the input string is necessary to match Lua's gsub() behavior
+      // which search for the pattern, replace then move forward and never looks back
+
+      var matches = searchS.match(regex);
+      if (matches == null)
         break;
+      var patternS = matches[0];
+      var patternLength = patternS.length;
+      var patternStartIndexInSearch = searchS.indexOf(patternS);
+
+      newS = newS.replace(searchS, searchS.replace(regex, repl));
+      
+      var diff = newS.length - oldS.length;
+      offset += patternStartIndexInSearch + patternLength + diff; // patternLength + diff is the length of the replacement
+      replCount++;
+      oldS = newS;
 
       if (!isNaN(n) && replCount >= n)
         break;
