@@ -1115,25 +1115,30 @@ lua_libs["string"] = {
     not_supported();
   },
   "find": function (s, pattern, index, plain) {
-    if (index == null)
-      index = 0;
-    if (index < 0)
+    if (index == undefined)
+      index = 1;
+    else if (index < 0)
       index = s.length + index;
+
+    index = index-1;
+    s = s.substr(index);
     
-    /*if (plain != true) {
-      var match = s:match(pattern, index)
-      if (match != nil )
-        pattern = match;
+    if (plain !== true) {
+      pattern = luapattern_to_regex(pattern);
+      var matches = s.match(pattern);
+      if (matches != null) 
+        pattern = matches[0];
       else
         return [null];
-    }*/
-
-    var start = s.indexOf(pattern, index);
+    }
     
-    if (start == -1)
-      return [null];
+    start = s.indexOf(pattern);
+    if (start != -1) {
+      start += index;
+      return [start, start+pattern.length-1];
+    }
     else
-      return [start+1, start+pattern.length];
+      return [null];
   },
   "format": function (formatstring) {
     // TODO: Finish implementation
