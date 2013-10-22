@@ -1192,8 +1192,14 @@ lua_libs["string"] = {
     else if (index < 0)
       index = s.length + index;
     index = index-1;
+
     pattern = luapattern_to_regex(pattern);
-    return s.substr(index).match(new RegExp(pattern, "g"));
+    var matches = s.substr(index).match(pattern);
+
+    if (matches == null)
+      return [null];
+    else
+      return [matches[0]];
   },
   "rep": function (s, n) {
     s = check_string(s);
