@@ -1045,23 +1045,41 @@ lua_libs["package"] = {
 
 function luapattern_to_regex( pattern ) {
   var replacements = {
-    // character classes, metacharacters
-
-    "%a": "[a-zA-Z]", // all letters what about wharacters with accent or special letter like ç
-    "%l": "[a-z]", 
-    "%u": "[A-Z]", 
-    "%d": "\\d", // all digit
-    "%p": "[,\?;\.:/!]", // all punctuation
-    "%s": "[ \t]", // all space characters   are \r, \n, etc.. space characters ?
-    "%w": "\\w", 
-    // "%g": "\\w", // all printable characters except space.
-    // "%c": "\\w", // Control character ?
-
     // pattern items, quantifiers
+    "(%[a-zA-Z]{1})-": "$1*", // put this before the character classes
     "\\]-": "]*",
     "-\\)": "*)",
+    "- ": "* ",
+    "-$": "*",
+    // probably other cases of hyphens that should be converted to *
     "%([0-9]){1}": "{$1}",
     "%f\\[([^\\]]+)\\]": "[^$1]{1}[$1]{1}", // frontier pattern
+
+    // character classes, metacharacters
+    "%a": "[a-zA-Z\u00C0-\u017F]", // all letters with accented characters  À to ſ  (shouldn't the down limit be much lower ?)
+    "%A": "[^a-zA-Z\u00C0-\u017F]",
+
+    "%l": "[a-z\u00E0-\u00FF]", // à to ÿ
+    "%L": "[^a-z\u00E0-\u00FF]", 
+    
+    "%u": "[A-Z\u00C0-\u00DF]", // À to ß
+    "%U": "[^A-Z\u00C0-\u00DF]",
+    // below character 00FF upper case and lowercase characters are mixed
+    
+    "%c": "[\u0000-\u001F]", // Control characters
+    "%C": "[^\u0000-\u001F]",
+
+    "%p": "[,\?;\.:/!]", // all punctuation
+    "%P": "[^,\?;\.:/!]", 
+
+    "%d": "\\d", // all digit
+    "%D": "\\D", 
+    "%s": "\\s", // all space characters   Any difference between 'space' and 'whitespace' ?
+    "%S": "\\S", 
+    "%w": "\\w", // all word (alphanum) characters
+    "%W": "\\W", 
+
+    // "%g": "", // all printable characters except space.  0021 (!) to  ?
   }
   
   for (var luaExp in replacements) {
