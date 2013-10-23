@@ -1094,14 +1094,13 @@ function luareplacement_to_regex( pattern ) {
 }
 
 function lua_gmatch_next(data) {
-  var match = data.s.match(pattern);
+  var match = data.s.match(data.pattern);
   if (match == null) 
-    return "";
+    return [null];
   match = match[0];
   var matchStartPos = data.s.search(match);
   data.s = data.s.substr(matchStartPos+match.length);
-  // if (results.length > 1) results = results.slice(1); // remove first result entry which is the whole match
-  return match;
+  return [match];
 }
 
 // string
@@ -1158,6 +1157,7 @@ lua_libs["string"] = {
   },
   "gmatch": function (s, pattern) {
     s = check_string(s);
+    // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
     return [lua_gmatch_next, {s:s, pattern:luapattern_to_regex(pattern)}]
   },
   "gsub": function (s, pattern, repl, n) {
