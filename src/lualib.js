@@ -1151,8 +1151,144 @@ lua_libs["string"] = {
       return [null];
   },
   "format": function () {
-    return [sprintf.apply(this, arguments)];
-  },
+    /*! sprintf.js | Copyright (c) 2007-2013 Alexandru Marasteanu <hello at alexei dot ro> | 3 clause BSD license */
+    /*! sprintf.js-lua.js | sprintf.js, forked to match Lua's string.format() behavior (and for use in lua.js) by Florent POUJOL */
+    var sprintf = function() {
+      if (!sprintf.cache.hasOwnProperty(arguments[0])) {
+        sprintf.cache[arguments[0]] = sprintf.parse(arguments[0]);
+      }
+      return sprintf.format.call(null, sprintf.cache[arguments[0]], arguments);
+    };
+
+    sprintf.format = function(parse_tree, argv) {
+      var cursor = 1, tree_length = parse_tree.length, node_type = '', arg, output = [], i, k, match, pad, pad_character, pad_length;
+      for (i = 0; i < tree_length; i++) {
+        node_type = get_type(parse_tree[i]);
+        if (node_type === 'string') {
+          output.push(parse_tree[i]);
+        }
+        else if (node_type === 'array') {
+              match = parse_tree[i]; // convenience purposes only
+              if (match[2]) { // keyword argument
+                arg = argv[cursor];
+                for (k = 0; k < match[2].length; k++) {
+                  if (!arg.hasOwnProperty(match[2][k])) {
+                    throw(sprintf('[sprintf.format] property "%s" does not exist', match[2][k]));
+                  }
+                  arg = arg[match[2][k]];
+                }
+              }
+              else if (match[1]) { // positional argument (explicit)
+                arg = argv[match[1]];
+              }
+              else { // positional argument (implicit)
+                arg = argv[cursor++];
+              }
+
+              if (/[^sq]/.test(match[8]) && (get_type(arg) != 'number')) {
+                throw(sprintf('[sprintf.format] expecting number but found %s', get_type(arg)));
+              }
+              switch (match[8]) {
+                  // case 'b': arg = arg.toString(2); break;
+                  case 'c': arg = String.fromCharCode(arg); break;
+                  case 'i':
+                  case 'd': arg = parseInt(arg, 10); break; // int
+                  case 'e': arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential(6); break;
+                  case 'E': arg = match[7] ? arg.toExponential(match[7]).toUpperCase() : arg.toExponential(6).toUpperCase(); break;
+                  case 'f': arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg).toFixed(6); break; // float
+                  // case 'g': // from C++ doc : use the sortest representation e or f > in Lua, has only 5 digit after the coma instead of 6 for floats
+                  // case 'G': // from C++ doc : use the sortest representation E or F (F does not exist in Lua)
+                  case 'o': arg = arg.toString(8); break; // octal
+                  case 'q': arg = '"'+((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg)+'"'; break;
+                  case 's': arg = ((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg); break;
+                  case 'u': arg = arg >>> 0; break; // unsigned integer
+                  case 'x': arg = arg.toString(16); break; // hexadecimal   
+                  case 'X': arg = arg.toString(16).toUpperCase(); break;
+                  // TODO hexa : some wrong values returned : -100 become -64 instead of ffffff9c (same for octal)
+                }
+                if (/[eE]/.test(match[8])) {
+                  //make the exponent (exp[2]) always at least 3 digit (ie : 3.14E+003)
+                  var exp = /^(.+\+)(\d+)$/.exec(arg);
+                  if (exp != null) {
+                    if (exp[2].length == 1) arg = exp[1]+"00"+exp[2];
+                    else if (exp[2].length == 2) arg = exp[1]+"0"+exp[2];
+                  }
+                }
+                arg = (/[dieEf]/.test(match[8]) && match[3] && arg >= 0 ? '+'+ arg : arg);
+                pad_character = match[4] ? match[4] == '0' ? '0' : match[4].charAt(1) : ' ';
+                pad_length = match[6] - String(arg).length;
+                pad = match[6] ? str_repeat(pad_character, pad_length) : '';
+                output.push(match[5] ? arg + pad : pad + arg);
+              }
+            }
+            return output.join('');
+          };
+
+          sprintf.cache = {};
+
+    sprintf.parse = function(fmt) { // fmt = format string
+      var _fmt = fmt, match = [], parse_tree = [], arg_names = 0;
+      while (_fmt) {
+        // \x25 = %
+        if ((match = /^[^\x25]+/.exec(_fmt)) !== null) { // no % found
+          parse_tree.push(match[0]);
+        }
+        else if ((match = /^\x25{2}/.exec(_fmt)) !== null) { // 2 consecutive % found
+          parse_tree.push('%');
+        }
+        else if ((match = /^\x25(?:([1-9]\d*)\$|\(([^\)]+)\))?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([cdeEfgGiouxXqs])/.exec(_fmt)) !== null) {
+          if (match[2]) {
+            arg_names |= 1;
+            var field_list = [], replacement_field = match[2], field_match = [];
+            if ((field_match = /^([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+              field_list.push(field_match[1]);
+              while ((replacement_field = replacement_field.substring(field_match[0].length)) !== '') {
+                if ((field_match = /^\.([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+                  field_list.push(field_match[1]);
+                }
+                else if ((field_match = /^\[(\d+)\]/.exec(replacement_field)) !== null) {
+                  field_list.push(field_match[1]);
+                }
+                else {
+                  throw('[sprintf.parse] No field_match found in replacement_field 1.');
+                }
+              }
+            }
+            else {
+              throw('[sprintf.parse] No field_match found in replacement_field 2.');
+            }
+            match[2] = field_list;
+          }
+          else {
+            arg_names |= 2;
+          }
+          if (arg_names === 3) {
+            throw('[sprintf.parse] mixing positional and named placeholders is not (yet) supported');
+          }
+          parse_tree.push(match);
+        }
+        else {
+          throw('[sprintf.parse] Format string "'+fmt+'" not recognized.');
+        }
+        _fmt = _fmt.substring(match[0].length);
+      }
+      return parse_tree;
+    };
+
+    /**
+     * helpers
+     */
+     function get_type(variable) {
+      return Object.prototype.toString.call(variable).slice(8, -1).toLowerCase();
+    }
+
+    function str_repeat(input, multiplier) {
+    for (var output = []; multiplier > 0; output[--multiplier] = input) {/* do nothing */}
+      return output.join('');
+  }
+
+  return [sprintf.apply(this, arguments)];
+  }, // format
   "gmatch": function (s, pattern) {
     s = check_string(s);
     // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
