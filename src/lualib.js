@@ -1089,20 +1089,6 @@ function luapattern_to_regex( pattern ) {
   return pattern;
 }
 
-function luareplacement_to_regex( pattern ) {
-  return pattern.replace(/%([0-9]+)/g, "$$$1");
-}
-
-function lua_gmatch_next(data) {
-  var match = data.s.match(data.pattern);
-  if (match == null) 
-    return [null];
-  match = match[0];
-  var matchStartPos = data.s.search(match);
-  data.s = data.s.substr(matchStartPos+match.length);
-  return [match];
-}
-
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
@@ -1293,6 +1279,16 @@ lua_libs["string"] = {
   }, // string.format()
   "gmatch": function (s, pattern) {
     s = check_string(s);
+    var lua_gmatch_next = function(data) {
+      var match = data.s.match(data.pattern);
+      if (match == null) 
+        return [null];
+      match = match[0];
+      var matchStartPos = data.s.search(match);
+      data.s = data.s.substr(matchStartPos+match.length);
+      return [match];
+    }
+
     // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
     return [lua_gmatch_next, {s:s, pattern:luapattern_to_regex(pattern)}]
   },
@@ -1300,7 +1296,7 @@ lua_libs["string"] = {
     var newS = check_string(s);
     var oldS = newS;
     pattern = luapattern_to_regex(pattern);
-    repl = luareplacement_to_regex(repl);
+    repl = repl.replace(/%([0-9]+)/g, "$$$1");
     n = Number(n); // NaN if n == undefined
 
     var replCount = 0;
