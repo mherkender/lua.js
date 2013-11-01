@@ -1159,7 +1159,7 @@ lua_libs["string"] = {
             arg = argv[cursor];
             for (k = 0; k < match[2].length; k++) {
               if (!arg.hasOwnProperty(match[2][k])) {
-                throw(sprintf('[string.format()] property "%s" does not exist', match[2][k]));
+                throw('[string.format()] property "'+match[2][k]+'" does not exist');
               }
               arg = arg[match[2][k]];
             }
@@ -1172,7 +1172,7 @@ lua_libs["string"] = {
           }
 
           if (/[^sq]/.test(match[8]) && (get_type(arg) != 'number')) {
-            throw(sprintf('[string.format()] expecting number but found %s', get_type(arg)));
+            throw('[string.format()] expecting number but found '+get_type(arg));
           }
           switch (match[8]) {
             // case 'b': arg = arg.toString(2); break;
