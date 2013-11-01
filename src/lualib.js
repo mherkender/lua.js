@@ -1142,7 +1142,7 @@ lua_libs["string"] = {
         return [null];
     }
     
-    start = s.indexOf(pattern);
+    var start = s.indexOf(pattern);
     if (start != -1) {
       start += index+1; // +1 because Lua's arrays index starts at 1 instead of 0
       return [start, start+pattern.length-1];
@@ -1151,7 +1151,8 @@ lua_libs["string"] = {
       return [null];
   },
   "format": function () {
-    /*! sprintf.js-lua.js | sprintf.js, forked to match Lua's string.format() behavior (and for use in lua.js) by Florent POUJOL */
+    /*! sprintf.js | Copyright (c) 2007-2013 Alexandru Marasteanu <hello at alexei dot ro> | 3 clause BSD license */
+    // forked to match Lua's string.format() behavior (and for use in lua.js) by Florent POUJOL
     var sprintf = function() {
       if (!sprintf.cache.hasOwnProperty(arguments[0])) {
         sprintf.cache[arguments[0]] = sprintf.parse(arguments[0]);
@@ -1287,7 +1288,7 @@ lua_libs["string"] = {
     }
 
     if (arguments.length > 0)
-      arguments[0] = check_string(s);
+      arguments[0] = check_string(arguments[0]);
     return [sprintf.apply(this, arguments)];
   }, // string.format()
   "gmatch": function (s, pattern) {
