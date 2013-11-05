@@ -629,8 +629,12 @@ var lua_core = {
     }
     if (table.arraymode) {
       var j = table.uints.length;
-      if (j == null) // sometimes table.uints has no length property. Is set in lua_len().
-        j = lua_len(table);
+      if (j == null) { // sometimes table.uints has no length property. Is set in lua_len().
+        j = 0;
+        for (i in table.uints)
+          j++;
+        table.uints.length = j;
+      }
       while (j-- > 0) {
         if (table.uints[j] != null) {
           props.push(j + 1);
