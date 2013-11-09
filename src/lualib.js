@@ -1056,7 +1056,7 @@ function luapattern_to_regex( pattern ) {
     "\\]-": "]*",
     "-\\)": "*)",
     "- ": "* ",
-    "-$": "*",
+    "-$": "*$",
     // TODO : probably other cases of hyphens that should be converted to *
     "%([0-9]){1}": "{$1}",
     "%f\\[([^\\]]+)\\]": "[^$1]{1}[$1]{1}", // frontier pattern
@@ -1086,6 +1086,20 @@ function luapattern_to_regex( pattern ) {
     "%W": "\\W", 
 
     // "%g": "", // TODO : all printable characters except space.  (all characters but the control characters (%C))
+
+    // escape special characters
+    "%\\.": "\\.",
+    "%\\^": "\\^",
+    "%\\$": "\\$",
+    "%\\(": "\\(",
+    "%\\)": "\\)",
+    "%\\[": "\\[",
+    "%\\]": "\\]",
+    "%\\*": "\\*",
+    "%\\+": "\\+",
+    "%\\-": "\\-",
+    "%\\?": "\\?",
+    "%%": "%",
   }
   
   for (var luaExp in replacements) {
