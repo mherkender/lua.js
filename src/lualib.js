@@ -1330,6 +1330,14 @@ lua_libs["string"] = {
     
     n = Number(n); // NaN if n == undefined
 
+    var reverse = false;
+    if (pattern[pattern.length-1] == "$") {
+      reverse = true;
+      s = s.split("").reverse().join("");
+      pattern = "^" + pattern.substr(0, pattern.length-1);
+      regex = new RegExp(pattern);
+    }
+
     var matches = s.match( new RegExp(pattern , 'g') );
     var newS = "";
 
@@ -1357,6 +1365,10 @@ lua_libs["string"] = {
     }
 
     newS += s;
+    if (reverse) {
+      newS = newS.split("").reverse().join(""); // reverse
+    }
+
     return [newS, replacementCount];
   },
   "len": function (s) {
