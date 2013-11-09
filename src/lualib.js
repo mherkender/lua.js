@@ -1298,45 +1298,46 @@ lua_libs["string"] = {
     // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
     return [lua_gmatch_next, {s:s, pattern:luapattern_to_regex(pattern)}]
   },
-  "gsub": function (s, pattern, repl, n) {
-    var newS = check_string(s);
-    var oldS = newS;
-    pattern = luapattern_to_regex(pattern);
-    repl = repl.replace(/%([0-9]+)/g, "$$$1");
-    n = Number(n); // NaN if n == undefined
+  "gsub": function (s, pattern, replacement, n) {
+    s = check_string(s);
 
-    var replCount = 0;
-    var offset = 0;
+    pattern = luapattern_to_regex(pattern);
     var regex = new RegExp(pattern);
 
-    var i = s.search(regex);
-    while (i > 0) {
-      var searchS = newS.substr(offset); 
-      // searchS the portion of the string in which we will search and replace the pattern
-      // offset is the position in newS of the first character of the portion that hasn't been modified yet
+    var replacementCount = 0, replacementType = typeof replacement;
+    if (replacementType == "string") // replacement can be a function
+      replacement = replacement.replace(/%([0-9]+)/g, "$$$1");
+    
+    n = Number(n); // NaN if n == undefined
 
-      // doing the replacement in a portion of the input string is necessary to match Lua's gsub() behavior
-      // which search for the pattern, replace then move forward and never look back
+    var matches = s.match( new RegExp(pattern , 'g') );
+    var newS = "";
 
-      var matches = searchS.match(regex);
-      if (matches == null)
+    for (var i in matches) {
+      var match = matches[i];
+      var matchEndIndex = s.search( match ) + match.length;
+      var matchChunk = s.substr( 0, matchEndIndex );
+      var newMatchChunk = "";
+
+      if (replacementType == "string") {
+        newMatchChunk = matchChunk.replace( regex, replacement );
+      }
+      else if (replacementType == "function") {
+        newMatchChunk = matchChunk.replace( match, replacement( match ) );
+      }
+
+      newS += newMatchChunk;
+      s = s.substr( matchEndIndex );
+
+      replacementCount++;
+      if (!isNaN(n) && ++replacementCount >= n)
         break;
-      var patternS = matches[0];
-      var patternLength = patternS.length;
-      var patternStartIndexInSearch = searchS.indexOf(patternS);
-
-      newS = newS.replace(searchS, searchS.replace(regex, repl));
-      
-      var diff = newS.length - oldS.length;
-      offset += patternStartIndexInSearch + patternLength + diff; // patternLength + diff is the length of the replacement
-      replCount++;
-      oldS = newS;
-
-      if (!isNaN(n) && replCount >= n)
+      if (pattern[0] == "^" || pattern[pattern.length] == "$")
         break;
     }
 
-    return [newS, replCount];
+    newS += s;
+    return [newS, replacementCount];
   },
   "len": function (s) {
     return [check_string(s).length];
