@@ -1298,19 +1298,25 @@ lua_libs["string"] = {
     return [sprintf.apply(this, arguments)];
   }, // string.format()
   "gmatch": function (s, pattern) {
-    s = check_string(s);
     var lua_gmatch_next = function(data) {
+      console.log(data.pattern);
+      return;
       var match = data.s.match(data.pattern);
+
       if (match == null) 
         return [null];
-      match = match[0];
-      var matchStartPos = data.s.search(match);
-      data.s = data.s.substr(matchStartPos+match.length);
+
+      if (match[1] != null) // there was a capture, match[0] is the whole matched expression
+        match = match[1]; // match[0] is the whole match, not the first capture
+      else
+        match = match[0];
+
+      data.s = data.s.substr( data.s.search(match) + match.length );
       return [match];
     }
 
     // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
-    return [lua_gmatch_next, {s:s, pattern:luapattern_to_regex(pattern)}]
+    return [lua_gmatch_next, {s:check_string(s), pattern:luapattern_to_regex(pattern)}]
   },
   "gsub": function (s, pattern, replacement, n) {
     s = check_string(s);
