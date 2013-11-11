@@ -723,15 +723,22 @@ var lua_core = {
     }
     return [table]
   },
-  "tonumber": function (e, base) {
+  tonumber: function (e, base) {
     if (typeof e == "number") {
-      return [e];
+        return [e]
     }
+    e = check_string(e);
+    if (e.search("[^0-9\. ]") != -1)
+      return [null];
+    var num;
     if (base === 10 || base == null) {
-      return [parseFloat(e)];
+      num = parseFloat(e);
     } else {
-      return [parseInt(e, base)];
+      num = parseInt(e, base);
     }
+    if (isNaN(num))
+      num = null;
+    return [num];
   },
   "tostring": function (e) {
     if (e == null) {
@@ -1299,10 +1306,7 @@ lua_libs["string"] = {
   }, // string.format()
   "gmatch": function (s, pattern) {
     var lua_gmatch_next = function(data) {
-      console.log(data.pattern);
-      return;
       var match = data.s.match(data.pattern);
-
       if (match == null) 
         return [null];
 
