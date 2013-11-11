@@ -1379,10 +1379,14 @@ lua_libs["string"] = {
     pattern = luapattern_to_regex(pattern);
     var matches = s.substr(index).match(pattern);
 
-    if (matches == null)
-      return [null];
-    else
-      return [matches[0]];
+    var match = null;
+    if (matches != null) {
+      if (matches[1] != null) // there was a capture, match[0] is the whole matched expression
+        match = matches[1];
+      else
+        match =  matches[0];
+    } 
+    return [match];
   },
   "rep": function (s, n) {
     s = check_string(s);
