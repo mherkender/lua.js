@@ -724,11 +724,11 @@ var lua_core = {
     return [table]
   },
   tonumber: function (e, base) {
-    if (typeof e == "number") {
-        return [e]
-    }
-    e = check_string(e);
-    if (e.search("[^0-9\. ]") != -1)
+    var type = typeof e;
+    if (type == "number") {
+      return [e]
+    } 
+    if (type != "string" || e.search("[^0-9\. -]") != -1)
       return [null];
     var num;
     if (base === 10 || base == null) {
