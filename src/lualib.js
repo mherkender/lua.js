@@ -29,7 +29,7 @@ function not_supported() {
 }
 
 function ensure_arraymode(table) {
-  if (!table.arraymode) {
+  if (!table.arraymode || Object.prototype.toString.call( table.uints ) !== '[object Array]') {
     var newuints = [];
     for (var i in table.uints) {
       if (table.uints[i] != null) {
