@@ -774,7 +774,7 @@ var lua_core = {
       case "undefined":
         return ["nil"];
       default:
-        throw new Error("Unepected value of type " + typeof v);
+        throw new Error("Unexpected value of type " + typeof v);
     }
   },
   "unpack": function (list, i, j) {
