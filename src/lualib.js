@@ -555,6 +555,25 @@ function lua_concat(op1, op2) {
     }
   }
 }
+function lua_tonumber(e, base) {
+  var type = typeof e;
+  if (type == "number") {
+    return e;
+  } 
+  if (type != "string" || e.search("[^0-9\. -]") != -1) {
+    return null;
+  }
+  var num;
+  if (base === 10 || base === null) {
+    num = parseFloat(e);
+  } else {
+    num = parseInt(e, base);
+  }
+  if (isNaN(num)) {
+    num = null;
+  }
+  return num;
+}
 
 // core lua functions
 function _ipairs_next(table, index) {
@@ -718,23 +737,7 @@ var lua_core = {
     return [table]
   },
   "tonumber": function (e, base) {
-    var type = typeof e;
-    if (type == "number") {
-      return [e];
-    } 
-    if (type != "string" || e.search("[^0-9\. -]") != -1) {
-      return [null];
-    }
-    var num;
-    if (base === 10 || base == null) {
-      num = parseFloat(e);
-    } else {
-      num = parseInt(e, base);
-    }
-    if (isNaN(num)) {
-      num = null;
-    }
-    return [num];
+    return [lua_tonumber(e, base)];
   },
   "tostring": function (e) {
     if (e == null) {
