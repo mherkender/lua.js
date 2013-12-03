@@ -564,7 +564,7 @@ function lua_tonumber(e, base) {
     return null;
   }
   var num;
-  if (base === 10 || base === null) {
+  if (base === 10 || base == null) {
     num = parseFloat(e);
   } else {
     num = parseInt(e, base);
