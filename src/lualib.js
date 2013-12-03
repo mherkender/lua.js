@@ -1370,11 +1370,11 @@ lua_libs["string"] = {
   "gmatch": function (s, pattern) {
     var lua_gmatch_next = function(data) {
       var match = data.s.match(data.pattern);
-      if (match === null) {
+      if (match == null) {
         return [null];
       }
 
-      if (match[1] !== null) { // if there was a capture, match[0] is the whole matched expression, match[1] the first capture
+      if (match[1] != null) { // if there was a capture, match[0] is the whole matched expression, match[1] the first capture
         match = match[1];
       } else {
         match = match[0];
@@ -1446,8 +1446,8 @@ lua_libs["string"] = {
     var matches = s.substr(index).match(pattern);
 
     var match = null;
-    if (matches !== null) {
-      if (matches[1] !== null) { // there was a capture, match[0] is the whole matched expression
+    if (matches != null) {
+      if (matches[1] != null) { // there was a capture, match[0] is the whole matched expression
         match = matches[1];
       } else {
         match =  matches[0];
