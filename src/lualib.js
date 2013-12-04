@@ -1255,18 +1255,26 @@ lua_libs["string"] = {
               // in practice, g or G always return a float with 1 less digits after the coma than asked for (by default it's 5 instead of 6)
               break;
             case 'o': // octal
+              if (arg < 0) {
+                arg = 0xFFFFFFFF + arg + 1;
+              }
               arg = arg.toString(8); 
               break;
             case 'u': // unsigned integer
               arg = arg >>> 0; 
               break;
             case 'x': // hexadecimal
+              if (arg < 0) {
+                arg = 0xFFFFFFFF + arg + 1;
+              }
               arg = arg.toString(16); 
               break;
             case 'X':
+              if (arg < 0) {
+                arg = 0xFFFFFFFF + arg + 1;
+              }
               arg = arg.toString(16).toUpperCase(); 
               break;
-            // TODO hexadecimal : some wrong values are returned : -100 becomes -64 instead of ffffff9c (same issue with octal)
             case 'q':
               arg = '"'+((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg)+'"'; 
               break;
