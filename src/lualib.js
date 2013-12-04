@@ -1247,14 +1247,12 @@ lua_libs["string"] = {
               arg = match[7] ? arg.toExponential(match[7]).toUpperCase() : arg.toExponential(6).toUpperCase(); 
               break;
             case 'f': // float
-            case 'F':
               arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg).toFixed(6); 
-              break; 
-            case 'g': 
-              not_supported(); // from C++ doc : use the sortest representation e or f > in Lua, has only 5 digit after the coma instead of 6 for floats
               break;
-            case 'G': 
-              not_supported(); // from C++ doc : use the sortest representation E or F (F does not exist in Lua)
+            case 'g': 
+            case 'G':
+              arg = match[7] ? parseFloat(arg).toFixed(match[7] - 1) : parseFloat(arg).toFixed(5);
+              // in practice, g or G always return a float with 1 less digits after the coma than asked for (by default it's 5 instead of 6)
               break;
             case 'o': // octal
               arg = arg.toString(8); 
