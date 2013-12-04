@@ -1056,43 +1056,55 @@ lua_libs["package"] = {
 };
 
 function lua_pattern_to_regex(pattern) {
+  var notsupportedPatterns = {
+    // - quantifier
+    "(%[a-zA-Z]{1})-",
+    "\\]-",
+    "-\\)",
+    "- ",
+    "-$",
+
+    "%(g|G)", // all printable characters except space.
+
+    // character classes between square brackets [%l]
+    "\[[^%]*(%[aAcCdDgGlLpPsSuUwW][\]]*\]",
+  };
+
+  for (var i in notsupportedPatterns) {
+    if (pattern.search(new RegExp(notsupportedPatterns[i], "g")) != -1) {
+      not_supported();
+    }
+  }
+
   var replacements = {
-    // pattern items, quantifiers
-    "(%[a-zA-Z]{1})-": "$1*", // put this before the character classes
-    "\\]-": "]*",
-    "-\\)": "*)",
-    "- ": "* ",
-    "-$": "*$",
-    // TODO : probably other cases of hyphens that should be converted to *
-    "%([0-9]){1}": "{$1}",
+    "%([0-9]){1}": "{$1}",^// quantifier
     "%f\\[([^\\]]+)\\]": "[^$1]{1}[$1]{1}", // frontier pattern
 
-    // character classes, metacharacters
+    // character classes
     "%a": "[a-zA-Z\u00C0-\u017F]", // all letters with accented characters  À to ſ  (shouldn't the down limit be much lower ?)
     "%A": "[^a-zA-Z\u00C0-\u017F]",
-
-    "%u": "[A-Z\u00C0-\u00DF]", // À to ß
-    "%U": "[^A-Z\u00C0-\u00DF]",
-
-    "%l": "[a-z\u00E0-\u00FF]", // à to ÿ
-    "%L": "[^a-z\u00E0-\u00FF]", 
-    // below character 00FF, upper case and lowercase characters are mixed
     
     "%c": "[\u0000-\u001F]", // Control characters
     "%C": "[^\u0000-\u001F]",
-
-    "%p": "[,\?;\.:/!]", // all punctuation
-    "%P": "[^,\?;\.:/!]", 
-
+    
     "%d": "\\d", // all digit
-    "%D": "\\D", 
-    "%s": "\\s", // all space characters   Any difference between 'space' and 'whitespace' ?
+    "%D": "\\D",
+    
+    "%l": "[a-z\u00E0-\u00FF]", // lowercase letters + à to ÿ (below character 00FF, upper case and lowercase characters are mixed)
+    "%L": "[^a-z\u00E0-\u00FF]", 
+    
+    "%p": "[,\?;\.:/\\!\(\)\[\]\{\}\"'#|%$`^@~&+*<>-]", // all punctuation
+    "%P": "[^,\?;\.:/\\!\(\)\[\]\{\}\"'#|%$`^@~&+*<>-]",
+
+    "%s": "\\s", // all space characters
     "%S": "\\S", 
-    "%w": "\\w", // all word (alphanum) characters
+
+    "%u": "[A-Z\u00C0-\u00DF]", // uppercase letter + À to ß
+    "%U": "[^A-Z\u00C0-\u00DF]",
+
+    "%w": "\\w", // all alphanum characters
     "%W": "\\W", 
-
-    // "%g": "", // TODO : all printable characters except space.  (all characters but the control characters (%C))
-
+    
     // escape special characters
     "%\\.": "\\.",
     "%\\^": "\\^",
