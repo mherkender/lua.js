@@ -1056,22 +1056,19 @@ lua_libs["package"] = {
 };
 
 function lua_pattern_to_regex(pattern) {
-  var notsupportedPatterns = {
-    // - quantifier
-    "(%[a-zA-Z]{1})-",
-    "\\]-",
-    "-\\)",
-    "- ",
-    "-$",
+  var notsupportedPatterns = [
+    // hyphen quantifier
+    /%[aAcCdDgGlLpPsSuUwW]-/g, // after a chracter class
+    /(]|\))-/g, // after a set or parenthesis
+    /[^%]-(\)|%)/g, // not escaped, before a parenthesis or a character class
+    
+    /%(g|G)/g, // all printable characters except space.
 
-    "%(g|G)", // all printable characters except space.
-
-    // character classes between square brackets [%l]
-    "\[[^%]*(%[aAcCdDgGlLpPsSuUwW][\]]*\]",
-  };
+    /\[[^%]*%[aAcCdDgGlLpPsSuUwW][\]]*\]/g, // character classes between square brackets [%l]
+  ];
 
   for (var i in notsupportedPatterns) {
-    if (pattern.search(new RegExp(notsupportedPatterns[i], "g")) != -1) {
+    if (pattern.search(notsupportedPatterns[i]) != -1) {
       not_supported();
     }
   }
