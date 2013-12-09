@@ -1124,6 +1124,40 @@ function lua_pattern_to_regex(pattern) {
   return pattern;
 }
 
+function get_balanced_match(s, pattern) {
+  var match = pattern.search(/%b.{1}.{1}/); // lua_pattern_to_regex() will leave balanced pattern untouched in the returned regex
+  if (match !== -1) {
+    var startChar = pattern[2];
+    var endChar = pattern[3];
+    var level = 0;
+    var startIndex = -1;
+    var endIndex = -1;
+
+    for (var i in s) {
+      i = parseInt(i);
+      var _char = s[i];
+      if (_char === startChar) {
+        if (level === 0) {
+          startIndex = i;
+          level = 0; // in case one or more endChar were encountered first
+        }
+        level++;
+      } else if (_char === endChar) {
+        level--;
+        if (level === 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (startIndex >= 0 && endIndex >= 0) {
+      return s.substring(startIndex, endIndex + 1);
+    }
+  }
+  return null;
+}
+
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
@@ -1157,14 +1191,19 @@ lua_libs["string"] = {
     
     if (plain !== true) {
       pattern = lua_pattern_to_regex(pattern);
-      var matches = s.match(pattern);
-      if (matches !== null) {
-        pattern = matches[0];
+      var match = get_balanced_match(s, pattern);
+      if (match != null) {
+        pattern = match;
       } else {
-        return [null];
+        var matches = s.match(pattern);
+        if (matches !== null) {
+          pattern = matches[0];
+        } else {
+          return [null];
+        }
       }
     }
-    
+
     var start = s.indexOf(pattern);
     if (start != -1) {
       start += index + 1; // +1 because Lua's arrays index starts at 1 instead of 0
