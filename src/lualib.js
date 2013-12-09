@@ -1065,6 +1065,8 @@ function lua_pattern_to_regex(pattern) {
     /%(g|G)/g, // all printable characters except space.
 
     /\[[^%]*%[aAcCdDgGlLpPsSuUwW][\]]*\]/g, // character classes between square brackets [%l]
+
+    /(^[^%]+%b|%b.{2}.+$)/g, // a balanced pattern with something before or after it
   ];
 
   for (var i in notsupportedPatterns) {
@@ -1074,7 +1076,7 @@ function lua_pattern_to_regex(pattern) {
   }
 
   var replacements = {
-    "%([0-9]){1}": "{$1}",^// quantifier
+    "%([0-9]){1}": "{$1}", // quantifier
     "%f\\[([^\\]]+)\\]": "[^$1]{1}[$1]{1}", // frontier pattern
 
     // character classes
