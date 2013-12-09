@@ -1454,13 +1454,10 @@ lua_libs["string"] = {
     if (replacementType == "string") { // replacement can be a function
       replacement = replacement.replace(/%([0-9]+)/g, "$$$1");
     }
-    n = Number(n); // NaN if n == undefined
+    n = parseInt(n); // NaN if n == undefined
 
-    var matches = s.match(new RegExp(pattern , 'g'));
     var newS = "";
-
-    for (var i in matches) {
-      var match = matches[i];
+    var processMatch = function( match ) {
       var matchEndIndex = s.search(regex) + match.length;
       var matchChunk = s.substr(0, matchEndIndex);
       var newMatchChunk = "";
@@ -1468,17 +1465,48 @@ lua_libs["string"] = {
       if (replacementType == "string") {
         newMatchChunk = matchChunk.replace(regex, replacement);
       } else if (replacementType == "function") {
-        newMatchChunk = matchChunk.replace(match, replacement(match));
+        newMatchChunk = matchChunk.replace(regex, replacement(match));
       }
-
       newS += newMatchChunk;
       s = s.substr(matchEndIndex);
 
       replacementCount++;
       if (!isNaN(n) && replacementCount >= n) {
-        break;
+        return true; // break
       }
-    }
+    };
+
+    var match = get_balanced_match(s, pattern);
+    if (match !== null) {
+      var startChar = pattern[2];
+      var endChar = pattern[3];
+      // escape start and end char if they are special regex chars
+      var specialChars = ["[","]","(",")","{","}"]; // in this context it's not necessarily usefull to add others characters 
+      if (specialChars.indexOf(startChar) !== -1) {
+        startChar = "\\"+startChar;
+      }
+      if (specialChars.indexOf(endChar) !== -1) {
+        endChar = "\\"+endChar;
+      }
+
+      do {
+        match = get_balanced_match(s, pattern);
+        if (match === null) {
+          break;
+        }
+        regex = match.replace(new RegExp(startChar, "g"), startChar);
+        regex = regex.replace(new RegExp(endChar, "g"), endChar);
+        regex = new RegExp(regex);
+      } while (processMatch(match) != true);
+    } else {
+      var matches = s.match(new RegExp(pattern , 'g'));
+
+      for (var i in matches) {
+        if (processMatch(matches[i])) {
+          break;
+        }
+      }
+    }    
 
     newS += s;
     return [newS, replacementCount];
