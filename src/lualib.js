@@ -1131,28 +1131,33 @@ function get_balanced_match(s, pattern) {
   if (match !== -1) {
     var startChar = pattern[2];
     var endChar = pattern[3];
-    var level = 0;
+    var level = -1;
     var startIndex = -1;
+    var startIndexes = [];
     var endIndex = -1;
 
     for (var i in s) {
       i = parseInt(i);
       var _char = s[i];
       if (_char === startChar) {
-        if (level === 0) {
+        startIndexes.push(i);
+        if (level < 0) {
           startIndex = i;
           level = 0; // in case one or more endChar were encountered first
         }
         level++;
       } else if (_char === endChar) {
         level--;
+        endIndex = i;
         if (level === 0) {
-          endIndex = i;
           break;
         }
       }
     }
 
+    if (level > 0) { // there was more startChar than endChar
+      startIndex = startIndexes[level];
+    }
     if (startIndex >= 0 && endIndex >= 0) {
       return s.substring(startIndex, endIndex + 1);
     }
