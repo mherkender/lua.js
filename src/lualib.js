@@ -1525,16 +1525,18 @@ lua_libs["string"] = {
       index = s.length + index;
     }
     index--;
+    s = s.substr(index);
 
     pattern = lua_pattern_to_regex(pattern);
-    var matches = s.substr(index).match(pattern);
-
-    var match = null;
-    if (matches != null) {
-      if (matches[1] != null) { // there was a capture, match[0] is the whole matched expression
-        match = matches[1];
-      } else {
-        match =  matches[0];
+    var match = get_balanced_match(s, pattern);
+    if (match === null) {
+      var matches = s.match(pattern);
+      if (matches != null) {
+        if (matches[1] != null) { // there was a capture, match[0] is the whole matched expression
+          match = matches[1];
+        } else {
+          match =  matches[0];
+        }
       }
     }
     return [match];
