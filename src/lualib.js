@@ -1433,24 +1433,23 @@ lua_libs["string"] = {
   },
   "gmatch": function (s, pattern) {
     var lua_gmatch_next = function(data) {
-      var match = data.s.match(data.pattern);
-      if (match == null) {
-        return [null];
+      var match = get_balanced_match(data.s, data.pattern);
+      if (match === null) {
+        var matches = data.s.match(data.pattern);
+        if (matches === null) {
+          return [null];
+        } else {
+          if (matches[1] != null) { // if there was a capture, match[0] is the whole matched expression, match[1] the first capture
+            match = matches[1];
+          } else {
+            match = matches[0];
+          }
+        }
       }
-
-      if (match[1] != null) { // if there was a capture, match[0] is the whole matched expression, match[1] the first capture
-        match = match[1];
-      } else {
-        match = match[0];
-      }
-
+      
       data.s = data.s.substr(data.s.search(match) + match.length);
       return [match];
     };
-
-    // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
-    return [lua_gmatch_next, {"s":check_string(s), "pattern":lua_pattern_to_regex(pattern)}];
-  },
   "gsub": function (s, pattern, replacement, n) {
     s = check_string(s);
 
