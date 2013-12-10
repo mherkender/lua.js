@@ -1207,12 +1207,15 @@ lua_libs["string"] = {
     }
 
     var start = s.indexOf(pattern);
+    var returnValues = null;
     if (start != -1) {
-      start += index + 1; // +1 because Lua's arrays index starts at 1 instead of 0
-      return [start, start + pattern.length - 1];
-    } else {
-      return [null];
+      returnValues = [start + index + 1, start + index + pattern.length];
+      if (matches != null && matches[1] != null) { // string.find() returns the capture(s) (if any) after the indexes
+        returnValues = returnValues.concat(matches.slice(1));
+      }
     }
+    
+    return returnValues;
   },
   "format": function () {
     // sprintf.js, forked to match Lua's string.format() behavior (and for use in lua.js) by Florent POUJOL
