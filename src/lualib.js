@@ -1064,8 +1064,6 @@ function lua_pattern_to_regex(pattern) {
     
     /%(g|G)/g, // all printable characters except space.
 
-    /\[[^%]*%[aAcCdDgGlLpPsSuUwW][\]]*\]/g, // character classes between square brackets [%l]
-
     /(^[^%]+%b|%b.{2}.+$)/g, // a balanced pattern with something before or after it
 
     /%[0-9]{1}/g, // capture index
