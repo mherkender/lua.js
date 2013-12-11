@@ -1169,6 +1169,8 @@ function get_balanced_match(s, pattern) {
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
+    i = lua_tonumber(i);
+    j = lua_tonumber(j);
     if (i == null) {
       i = 0;
     }
@@ -1469,7 +1471,7 @@ lua_libs["string"] = {
     }
 
     var newS = "";
-    var processMatch = function( match ) {
+    var processMatch = function(match) {
       var matchEndIndex = s.search(regex) + match.length;
       var matchChunk = s.substr(0, matchEndIndex);
       var newMatchChunk = "";
@@ -1532,7 +1534,8 @@ lua_libs["string"] = {
   },
   "match": function (s, pattern, index) {
     s = check_string(s);
-    if (index === undefined) {
+    index = lua_tonumber(index);
+    if (index === null) {
       index = 1;
     } else if (index < 0) {
       index = s.length + index;
@@ -1544,8 +1547,8 @@ lua_libs["string"] = {
     var match = get_balanced_match(s, pattern);
     if (match === null) {
       var matches = s.match(pattern);
-      if (matches != null) {
-        if (matches[1] != null) { // there was a capture, match[0] is the whole matched expression
+      if (matches !== null) {
+        if (matches[1] != null) {
           match = matches[1];
         } else {
           match =  matches[0];
@@ -1556,7 +1559,8 @@ lua_libs["string"] = {
   },
   "rep": function (s, n) {
     s = check_string(s);
-    if (typeof n == "number") {
+    n = lua_tonumber(n);
+    if (n !== null) {
       var result = [];
       while (n-- > 0) {
         result.push(s);
@@ -1570,6 +1574,8 @@ lua_libs["string"] = {
     return [check_string(s).split("").reverse().join("")];
   },
   "sub": function (s, i, j) {
+    i = lua_tonumber(i);
+    j = lua_tonumber(j);
     // thanks to ghoulsblade for pointing out the bugs in string.sub
     i = i < 0 ? (i + s.length + 1) : (i >= 0 ? i : 0)
     if (j == null) {
