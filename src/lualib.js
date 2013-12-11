@@ -1189,7 +1189,8 @@ lua_libs["string"] = {
   },
   "find": function (s, pattern, index, plain) {
     s = check_string(s);
-    if (index === undefined) {
+    index = lua_tonumber(index);
+    if (index == null) {
       index = 1;
     } else if (index < 0) {
       index = s.length + index;
@@ -1197,10 +1198,10 @@ lua_libs["string"] = {
     index--; // -1 because Lua's arrays index starts at 1 instead of 0
     s = s.substr(index);
     
-    if (plain !== true) {
+    if (plain == null || plain === false) {
       pattern = lua_pattern_to_regex(pattern);
       var match = get_balanced_match(s, pattern);
-      if (match != null) {
+      if (match !== null) {
         pattern = match;
       } else {
         var matches = s.match(pattern);
@@ -1210,6 +1211,7 @@ lua_libs["string"] = {
           return [null];
         }
       }
+      // pattern is now the matched string
     }
 
     var start = s.indexOf(pattern);
