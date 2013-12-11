@@ -1226,7 +1226,7 @@ lua_libs["string"] = {
     return returnValues;
   },
   "format": function () {
-    // sprintf.js, forked to match Lua's string.format() behavior (and for use in lua.js) by Florent POUJOL
+    // sprintf.js, forked to match Lua's string.format() behavior and for use in lua.js
     /* Copyright (c) 2007-2013, Alexandru Marasteanu <hello [at) alexei (dot] ro>
     All rights reserved.
 
@@ -1257,6 +1257,7 @@ lua_libs["string"] = {
       }
       return sprintf.format.call(null, sprintf.cache[arguments[0]], arguments);
     };
+    sprintf.cache = {};
 
     sprintf.format = function(parse_tree, argv) {
       var cursor = 1;
@@ -1344,7 +1345,6 @@ lua_libs["string"] = {
               break;
             default:
               not_supported();
-              break;
           }
           if (/[eE]/.test(match[8])) {
             //make the exponent (exp[2]) always at least 3 digit (ie : 3.14E+003)
@@ -1366,8 +1366,6 @@ lua_libs["string"] = {
       }
       return output.join('');
     };
-
-    sprintf.cache = {};
 
     sprintf.parse = function(fmt) { // fmt = format string
       var _fmt = fmt;
@@ -1453,6 +1451,10 @@ lua_libs["string"] = {
       data.s = data.s.substr(data.s.search(match) + match.length);
       return [match];
     };
+
+    // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
+    return [lua_gmatch_next, {"s":check_string(s), "pattern":lua_pattern_to_regex(pattern)}];
+  },
   "gsub": function (s, pattern, replacement, n) {
     s = check_string(s);
 
