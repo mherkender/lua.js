@@ -424,7 +424,7 @@ function lua_rawget(table, key) {
           return table.objs[i][1];
         }
       }
-	break;
+      break;
     default:
       throw new Error("Unsupported key for table: " + (typeof key));
   }
