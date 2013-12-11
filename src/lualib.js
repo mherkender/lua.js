@@ -1215,7 +1215,7 @@ lua_libs["string"] = {
     }
 
     var start = s.indexOf(pattern);
-    var returnValues = null;
+    var returnValues = [null];
     if (start != -1) {
       returnValues = [start + index + 1, start + index + pattern.length];
       if (matches != null && matches[1] != null) { // string.find() returns the capture(s) (if any) after the indexes
