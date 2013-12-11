@@ -1457,6 +1457,7 @@ lua_libs["string"] = {
   },
   "gsub": function (s, pattern, replacement, n) {
     s = check_string(s);
+    n = lua_tonumber(n);
 
     pattern = lua_pattern_to_regex(pattern);
     var regex = new RegExp(pattern);
@@ -1466,7 +1467,6 @@ lua_libs["string"] = {
     if (replacementType == "string") { // replacement can be a function
       replacement = replacement.replace(/%([0-9]+)/g, "$$$1");
     }
-    n = parseInt(n); // NaN if n == undefined
 
     var newS = "";
     var processMatch = function( match ) {
@@ -1483,9 +1483,10 @@ lua_libs["string"] = {
       s = s.substr(matchEndIndex);
 
       replacementCount++;
-      if (!isNaN(n) && replacementCount >= n) {
-        return true; // break
+      if (n !== null && replacementCount >= n) {
+        return false; // break
       }
+      return true;
     };
 
     var match = get_balanced_match(s, pattern);
@@ -1509,12 +1510,12 @@ lua_libs["string"] = {
         regex = match.replace(new RegExp(startChar, "g"), startChar);
         regex = regex.replace(new RegExp(endChar, "g"), endChar);
         regex = new RegExp(regex);
-      } while (processMatch(match) != true);
+      } while (processMatch(match));
     } else {
       var matches = s.match(new RegExp(pattern , 'g'));
 
       for (var i in matches) {
-        if (processMatch(matches[i])) {
+        if (!processMatch(matches[i])) {
           break;
         }
       }
