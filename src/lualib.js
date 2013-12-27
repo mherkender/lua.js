@@ -1167,17 +1167,20 @@ function get_balanced_match(s, pattern) {
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
+    s = check_string(s);
     i = lua_tonumber(i);
     j = lua_tonumber(j);
     if (i == null) {
-      i = 0;
+      i = 1;
     }
     if (j == null) {
       j = i;
     }
+    i--;
+    j--;
     var result = [];
-    while (i < j && i < s.length) {
-      result.push(s.charCodeAt(i));
+    while (i > 0 && i <= j && i < s.length) {
+      result.push(s.charCodeAt(i++));
     }
     return result;
   },
