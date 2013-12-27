@@ -1179,7 +1179,7 @@ lua_libs["string"] = {
     i--;
     j--;
     var result = [];
-    while (i > 0 && i <= j && i < s.length) {
+    while (i >= 0 && i <= j && i < s.length) {
       result.push(s.charCodeAt(i++));
     }
     return result;
