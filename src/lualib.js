@@ -1480,7 +1480,12 @@ lua_libs["string"] = {
       if (replacementType == "string") {
         newMatchChunk = matchChunk.replace(regex, replacement);
       } else if (replacementType == "function") {
-        newMatchChunk = matchChunk.replace(regex, replacement(match));
+        var result = replacement(match)[0]; // the function always returns an array
+        if (result == null) {
+          newMatchChunk = matchChunk;
+        } else {
+          newMatchChunk = matchChunk.replace(regex, result);
+        }
       }
       newS += newMatchChunk;
       s = s.substr(matchEndIndex);
