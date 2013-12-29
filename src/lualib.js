@@ -1480,7 +1480,17 @@ lua_libs["string"] = {
       if (replacementType == "string") {
         newMatchChunk = matchChunk.replace(regex, replacement);
       } else if (replacementType == "function") {
-        var result = replacement(match)[0]; // the function always returns an array
+        var result = null;
+        // match is the whole expression matched by the pattern, now get captures
+        var matches = match.match(pattern); // not global to get the captures !
+
+        if (matches[1] != null) {
+          matches = matches.slice(1);
+          result = replacement.apply(null, matches)[0];
+        } else {
+          result = replacement(match)[0]; // the function always returns an array
+        }
+        
         if (result == null) {
           newMatchChunk = matchChunk;
         } else {

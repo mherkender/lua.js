@@ -34,10 +34,11 @@ assert(r2 == "5 banana" and r3 == 1)
 r, r2 = string.gsub(s, "(a)", string.upper, 10) -- make all "a"s found uppercase
 assert(r == "Hello bAnAnA" and r2 == 3)
 
---r, r2 = string.gsub(s, "(a)(n)", function(a,b) return b..a end) -- reverse any "an"s
---assert(r == "Hello bnanaa" and r2 == 2)
--- function with two parameters are not supported
--- actually the capturing parenthesis are not supported with gsub, the whole matched expression is passed to the function
+r, r2 = string.gsub(s, "(a)(n)", function(a,b) return b..a end) -- reverse any "an"s
+assert(r == "Hello bnanaa" and r2 == 2)
+
+r, r2 = string.gsub(s, "a(n)", function(a) assert(a == "n"); return "ab" end) -- replace "n" by "b"
+assert(r == "Hello bababa" and r2 == 2)
 
 
 -- string.find(s, pattern[, index, plain])
