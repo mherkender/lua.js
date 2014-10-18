@@ -718,14 +718,27 @@ var lua_core = {
     return [table]
   },
   "tonumber": function (e, base) {
-    if (typeof e == "number") {
+    var type = typeof e;
+    if (type == "number") {
       return [e];
     }
-    if (base === 10 || base == null) {
-      return [parseFloat(e)];
-    } else {
-      return [parseInt(e, base)];
+    var isHex = false;
+    if (type == "string" && e.search("^\\s*0[xX][0-9A-Fa-f]+\\s*$") == 0) {
+      isHex = true;
     }
+    if (type != "string" || (!isHex && e.search("[^0-9\. -]") != -1)) {
+      return [null];
+    }
+    var num = null;
+    if ((base === 10 || base == null) && !isHex) {
+      num = parseFloat(e);
+    } else {
+      num = parseInt(e, base);
+    }
+    if (isNaN(num)) {
+      num = null;
+    }
+    return [num];
   },
   "tostring": function (e) {
     if (e == null) {
