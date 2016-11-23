@@ -32,6 +32,7 @@ function ensure_arraymode(table) {
   if (!table.arraymode) {
     var newuints = [];
     for (var i in table.uints) {
+      i = parseInt(i);
       if (table.uints[i] != null) {
         newuints[i - 1] = table.uints[i];
       }
@@ -44,6 +45,7 @@ function ensure_notarraymode(table) {
   if (table.arraymode) {
     var newuints = {};
     for (var i in table.uints) {
+      i = parseInt(i);
       if (table.uints[i] != null) {
         newuints[i - -1] = table.uints[i];
       }
