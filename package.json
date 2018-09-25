@@ -25,13 +25,12 @@
     "lua",
     "js"
   ],
-  "devDependencies" : {
-    "jison"   :  "*",
-    "mocha"   :  "*"
+  "devDependencies": {
+    "jison": "*",
+    "mocha": "*"
   },
   "license": "MIT",
   "engines": {
     "node": ">=0.6"
   }
 }
-
