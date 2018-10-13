@@ -424,7 +424,7 @@ function lua_rawget(table, key) {
           return table.objs[i][1];
         }
       }
-	break;
+      break;
     default:
       throw new Error("Unsupported key for table: " + (typeof key));
   }
@@ -554,6 +554,25 @@ function lua_concat(op1, op2) {
       throw new Error("Unable to concat " + op1 + " and " + op2);
     }
   }
+}
+function lua_tonumber(e, base) {
+  var type = typeof e;
+  if (type == "number") {
+    return e;
+  } 
+  if (type != "string" || e.search("[^0-9\. -]") != -1) {
+    return null;
+  }
+  var num;
+  if (base === 10 || base == null) {
+    num = parseFloat(e);
+  } else {
+    num = parseInt(e, base);
+  }
+  if (isNaN(num)) {
+    num = null;
+  }
+  return num;
 }
 
 // core lua functions
@@ -718,14 +737,7 @@ var lua_core = {
     return [table]
   },
   "tonumber": function (e, base) {
-    if (typeof e == "number") {
-      return [e];
-    }
-    if (base === 10 || base == null) {
-      return [parseFloat(e)];
-    } else {
-      return [parseInt(e, base)];
-    }
+    return [lua_tonumber(e, base)];
   },
   "tostring": function (e) {
     if (e == null) {
@@ -765,7 +777,7 @@ var lua_core = {
       case "undefined":
         return ["nil"];
       default:
-        throw new Error("Unepected value of type " + typeof v);
+        throw new Error("Unexpected value of type " + typeof v);
     }
   },
   "unpack": function (list, i, j) {
@@ -959,7 +971,7 @@ lua_libs["os"] = {
   "clock": function () {
     // This function is supposed to return the time the script has been executing
     // not the time since it started, but I don't know of a way to do this.
-    return [(((new Date()).getTime()) / 1000) - _lua_clock_script];
+    return [(((new Date()).getTime()) / 1000) - _lua_clock_start];
   },
   "date": function (format, time) {
     // TODO
@@ -1043,18 +1055,132 @@ lua_libs["package"] = {
   }
 };
 
+function lua_pattern_to_regex(pattern) {
+  var notsupportedPatterns = [
+    // hyphen quantifier
+    /%[aAcCdDgGlLpPsSuUwW]-/g, // after a chracter class
+    /(]|\))-/g, // after a set or parenthesis
+    /[^%]-(\)|%)/g, // not escaped, before a parenthesis or a character class
+    
+    /%(g|G)/g, // all printable characters except space.
+
+    /(^[^%]+%b|%b.{2}.+$)/g, // a balanced pattern with something before or after it
+
+    /%[0-9]{1}/g, // capture index
+  ];
+
+  for (var i in notsupportedPatterns) {
+    if (pattern.search(notsupportedPatterns[i]) != -1) {
+      not_supported();
+    }
+  }
+
+  var replacements = {
+    "%f\\[([^\\]]+)\\]": "[^$1]{1}[$1]{1}", // frontier pattern
+
+    // character classes
+    "%a": "[a-zA-Z\u00C0-\u017F]", // all letters with accented characters  À to ſ  (shouldn't the down limit be much lower ?)
+    "%A": "[^a-zA-Z\u00C0-\u017F]",
+    
+    "%c": "[\u0000-\u001F]", // Control characters
+    "%C": "[^\u0000-\u001F]",
+    
+    "%d": "\\d", // all digit
+    "%D": "\\D",
+    
+    "%l": "[a-z\u00E0-\u00FF]", // lowercase letters + à to ÿ (below character 00FF, upper case and lowercase characters are mixed)
+    "%L": "[^a-z\u00E0-\u00FF]", 
+    
+    "%p": "[,\?;\.:/\\!\(\)\[\]\{\}\"'#|%$`^@~&+*<>-]", // all punctuation
+    "%P": "[^,\?;\.:/\\!\(\)\[\]\{\}\"'#|%$`^@~&+*<>-]",
+
+    "%s": "\\s", // all space characters
+    "%S": "\\S", 
+
+    "%u": "[A-Z\u00C0-\u00DF]", // uppercase letter + À to ß
+    "%U": "[^A-Z\u00C0-\u00DF]",
+
+    "%w": "\\w", // all alphanum characters
+    "%W": "\\W", 
+    
+    // escape special characters
+    "%\\.": "\\.",
+    "%\\^": "\\^",
+    "%\\$": "\\$",
+    "%\\(": "\\(",
+    "%\\)": "\\)",
+    "%\\[": "\\[",
+    "%\\]": "\\]",
+    "%\\*": "\\*",
+    "%\\+": "\\+",
+    "%\\-": "\\-",
+    "%\\?": "\\?",
+    "%%": "%",
+  };
+  
+  for (var luaExp in replacements) {
+    pattern = pattern.replace(new RegExp(luaExp, "g"), replacements[luaExp]);
+  }
+
+  return pattern;
+}
+
+function get_balanced_match(s, pattern) {
+  var match = pattern.search(/%b.{1}.{1}/); // lua_pattern_to_regex() will leave balanced pattern untouched in the returned regex
+  if (match !== -1) {
+    var startChar = pattern[2];
+    var endChar = pattern[3];
+    var level = -1;
+    var startIndex = -1;
+    var startIndexes = [];
+    var endIndex = -1;
+
+    for (var i in s) {
+      i = parseInt(i);
+      var _char = s[i];
+      if (_char === startChar) {
+        startIndexes.push(i);
+        if (level < 0) {
+          startIndex = i;
+          level = 0; // in case one or more endChar were encountered first
+        }
+        level++;
+      } else if (_char === endChar) {
+        level--;
+        endIndex = i;
+        if (level === 0) {
+          break;
+        }
+      }
+    }
+
+    if (level > 0) { // there was more startChar than endChar
+      startIndex = startIndexes[level];
+    }
+    if (startIndex >= 0 && endIndex >= 0) {
+      return s.substring(startIndex, endIndex + 1);
+    }
+  }
+  return null;
+}
+
 // string
 lua_libs["string"] = {
   "byte": function (s, i, j) {
+    s = check_string(s);
+    i = lua_tonumber(i);
+    j = lua_tonumber(j);
     if (i == null) {
-      i = 0;
+      i = 1;
     }
     if (j == null) {
       j = i;
     }
+    i--;
+    j--;
     var result = [];
-    while (i < j && i < s.length) {
-      result.push(s.charCodeAt(i));
+    while (i >= 0 && i <= j && i < s.length) {
+      result.push(s.charCodeAt(i++));
     }
     return result;
   },
@@ -1064,21 +1190,357 @@ lua_libs["string"] = {
   "dump": function (func) {
     not_supported();
   },
-  "find": function () {
-    // TODO
-    not_supported();
+  "find": function (s, pattern, index, plain) {
+    s = check_string(s);
+    index = lua_tonumber(index);
+    if (index == null) {
+      index = 1;
+    } else if (index < 0) {
+      index = s.length + index;
+    }
+    index--; // -1 because Lua's arrays index starts at 1 instead of 0
+    s = s.substr(index);
+    
+    if (plain == null || plain === false) {
+      pattern = lua_pattern_to_regex(pattern);
+      var match = get_balanced_match(s, pattern);
+      if (match !== null) {
+        pattern = match;
+      } else {
+        var matches = s.match(pattern);
+        if (matches !== null) {
+          pattern = matches[0];
+        } else {
+          return [null];
+        }
+      }
+      // pattern is now the matched string
+    }
+
+    var start = s.indexOf(pattern);
+    var returnValues = [null];
+    if (start != -1) {
+      returnValues = [start + index + 1, start + index + pattern.length];
+      if (matches != null && matches[1] != null) { // string.find() returns the capture(s) (if any) after the indexes
+        returnValues = returnValues.concat(matches.slice(1));
+      }
+    }
+    
+    return returnValues;
   },
-  "format": function (formatstring) {
-    // TODO: Finish implementation
-    return ["[" + slice(arguments, 1).join(", ") + "]" + arguments[0]];
+  "format": function () {
+    // sprintf.js, forked to match Lua's string.format() behavior and for use in lua.js
+    /* Copyright (c) 2007-2013, Alexandru Marasteanu <hello [at) alexei (dot] ro>
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of this software nor the names of its contributors may be
+      used to endorse or promote products derived from this software without
+      specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+    var sprintf = function() {
+      if (!sprintf.cache.hasOwnProperty(arguments[0])) {
+        sprintf.cache[arguments[0]] = sprintf.parse(arguments[0]);
+      }
+      return sprintf.format.call(null, sprintf.cache[arguments[0]], arguments);
+    };
+    sprintf.cache = {};
+
+    sprintf.format = function(parse_tree, argv) {
+      var cursor = 1;
+      var tree_length = parse_tree.length;
+      var node_type = '';
+      var arg;
+      var output = [];
+      var i;
+      var k;
+      var match;
+      var pad;
+      var pad_character;
+      var pad_length;
+      for (i = 0; i < tree_length; i++) {
+        node_type = get_type(parse_tree[i]);
+        if (node_type === 'string') {
+          output.push(parse_tree[i]);
+        } else if (node_type === 'array') {
+          match = parse_tree[i]; // convenience purposes only
+          if (match[2]) { // keyword argument
+            arg = argv[cursor];
+            for (k = 0; k < match[2].length; k++) {
+              if (!arg.hasOwnProperty(match[2][k])) {
+                throw new Error('[string.format()] property "'+match[2][k]+'" does not exist');
+              }
+              arg = arg[match[2][k]];
+            }
+          } else if (match[1]) { // positional argument (explicit)
+            arg = argv[match[1]];
+          } else { // positional argument (implicit)
+            arg = argv[cursor++];
+          }
+
+          if (/[^sq]/.test(match[8]) && (get_type(arg) != 'number')) {
+            throw new Error('[string.format()] expecting number but found '+get_type(arg));
+          }
+          switch (match[8]) {
+            case 'c':
+              arg = String.fromCharCode(arg); 
+              break;
+            case 'i':
+            case 'd': // int
+              arg = parseInt(arg, 10); 
+              break; 
+            case 'e':
+              arg = match[7] ? arg.toExponential(match[7]) : arg.toExponential(6); 
+              break;
+            case 'E':
+              arg = match[7] ? arg.toExponential(match[7]).toUpperCase() : arg.toExponential(6).toUpperCase(); 
+              break;
+            case 'f': // float
+              arg = match[7] ? parseFloat(arg).toFixed(match[7]) : parseFloat(arg).toFixed(6); 
+              break;
+            case 'g': 
+            case 'G':
+              arg = match[7] ? parseFloat(arg).toFixed(match[7] - 1) : parseFloat(arg).toFixed(5);
+              // in practice, g or G always return a float with 1 less digits after the coma than asked for (by default it's 5 instead of 6)
+              break;
+            case 'o': // octal
+              if (arg < 0) {
+                arg = 0xFFFFFFFF + arg + 1;
+              }
+              arg = arg.toString(8); 
+              break;
+            case 'u': // unsigned integer
+              arg = arg >>> 0; 
+              break;
+            case 'x': // hexadecimal
+              if (arg < 0) {
+                arg = 0xFFFFFFFF + arg + 1;
+              }
+              arg = arg.toString(16); 
+              break;
+            case 'X':
+              if (arg < 0) {
+                arg = 0xFFFFFFFF + arg + 1;
+              }
+              arg = arg.toString(16).toUpperCase(); 
+              break;
+            case 'q':
+              arg = '"'+((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg)+'"'; 
+              break;
+            case 's':
+              arg = ((arg = String(arg)) && match[7] ? arg.substring(0, match[7]) : arg); 
+              break;
+            default:
+              not_supported();
+          }
+          if (/[eE]/.test(match[8])) {
+            //make the exponent (exp[2]) always at least 3 digit (ie : 3.14E+003)
+            var exp = /^(.+\+)(\d+)$/.exec(arg);
+            if (exp != null) {
+              if (exp[2].length == 1) {
+                arg = exp[1]+"00"+exp[2];
+              } else if (exp[2].length == 2) {
+                arg = exp[1]+"0"+exp[2];
+              }
+            }
+          }
+          arg = (/[dieEf]/.test(match[8]) && match[3] && arg >= 0 ? '+'+ arg : arg);
+          pad_character = match[4] ? match[4] == '0' ? '0' : match[4].charAt(1) : ' ';
+          pad_length = match[6] - String(arg).length;
+          pad = match[6] ? str_repeat(pad_character, pad_length) : '';
+          output.push(match[5] ? arg + pad : pad + arg);
+        }
+      }
+      return output.join('');
+    };
+
+    sprintf.parse = function(fmt) { // fmt = format string
+      var _fmt = fmt;
+      var match = [];
+      var parse_tree = [];
+      var arg_names = 0;
+      while (_fmt) {
+        // \x25 = %
+        if ((match = /^[^\x25]+/.exec(_fmt)) !== null) { // no % found
+          parse_tree.push(match[0]);
+        } else if ((match = /^\x25{2}/.exec(_fmt)) !== null) { // 2 consecutive % found
+          parse_tree.push('%');
+        } else if ((match = /^\x25(?:([1-9]\d*)\$|\(([^\)]+)\))?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([cdeEfgGiouxXqs])/.exec(_fmt)) !== null) {
+          if (match[2]) {
+            arg_names |= 1;
+            var field_list = [];
+            var replacement_field = match[2];
+            var field_match = [];
+            if ((field_match = /^([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+              field_list.push(field_match[1]);
+              while ((replacement_field = replacement_field.substring(field_match[0].length)) !== '') {
+                if ((field_match = /^\.([a-z_][a-z_\d]*)/i.exec(replacement_field)) !== null) {
+                  field_list.push(field_match[1]);
+                } else if ((field_match = /^\[(\d+)\]/.exec(replacement_field)) !== null) {
+                  field_list.push(field_match[1]);
+                } else {
+                  throw new Error('[string.format()] No field_match found in replacement_field 1.');
+                }
+              }
+            } else {
+              throw new Error('[string.format()] No field_match found in replacement_field 2.');
+            }
+            match[2] = field_list;
+          } else {
+            arg_names |= 2;
+          }
+          if (arg_names === 3) {
+            throw new Error('[string.format()] mixing positional and named placeholders is not (yet) supported');
+          }
+          parse_tree.push(match);
+        } else {
+          throw new Error('[string.format()] Format string "'+fmt+'" not recognized.');
+        }
+        _fmt = _fmt.substring(match[0].length);
+      }
+      return parse_tree;
+    };
+
+    function get_type(variable) {
+      var type = typeof variable;
+      if (type == "object" && Object.prototype.toString.call(variable) == "[object Array]") {
+        type = "array";
+      }
+      return type;
+    }
+            
+    function str_repeat(input, multiplier) {
+      for (var output = []; multiplier > 0; output[--multiplier] = input) {/* do nothing */}
+      return output.join('');
+    }
+
+    if (arguments.length > 0) {
+      arguments[0] = check_string(arguments[0]);
+    }
+    return [sprintf.apply(this, arguments)];
   },
   "gmatch": function (s, pattern) {
-    // TODO
-    not_supported();
+    var lua_gmatch_next = function(data) {
+      var match = get_balanced_match(data.s, data.pattern);
+      if (match === null) {
+        var matches = data.s.match(data.pattern);
+        if (matches === null) {
+          return [null];
+        } else {
+          if (matches[1] != null) { // if there was a capture, match[0] is the whole matched expression, match[1] the first capture
+            match = matches[1];
+          } else {
+            match = matches[0];
+          }
+        }
+      }
+      
+      data.s = data.s.substr(data.s.search(match) + match.length);
+      return [match];
+    };
+
+    // an object is used to keep the modifs to the string accross calls to lua_gmatch_next()
+    return [lua_gmatch_next, {"s":check_string(s), "pattern":lua_pattern_to_regex(pattern)}];
   },
-  "gsub": function (s, pattern, repl, n) {
-    // TODO
-    not_supported();
+  "gsub": function (s, pattern, replacement, n) {
+    s = check_string(s);
+    n = lua_tonumber(n);
+
+    pattern = lua_pattern_to_regex(pattern);
+    var regex = new RegExp(pattern);
+
+    var replacementCount = 0;
+    var replacementType = typeof replacement;
+    if (replacementType == "string") { // replacement can be a function
+      replacement = replacement.replace(/%([0-9]+)/g, "$$$1");
+    }
+
+    var newS = "";
+    var processMatch = function(match) {
+      var matchEndIndex = s.search(regex) + match.length;
+      var matchChunk = s.substr(0, matchEndIndex);
+      var newMatchChunk = "";
+
+      if (replacementType == "string") {
+        newMatchChunk = matchChunk.replace(regex, replacement);
+      } else if (replacementType == "function") {
+        var result = null;
+        // match is the whole expression matched by the pattern, now get captures
+        var matches = match.match(pattern); // not global to get the captures !
+
+        if (matches[1] != null) {
+          matches = matches.slice(1);
+          result = replacement.apply(null, matches)[0];
+        } else {
+          result = replacement(match)[0]; // the function always returns an array
+        }
+        
+        if (result == null) {
+          newMatchChunk = matchChunk;
+        } else {
+          newMatchChunk = matchChunk.replace(regex, result);
+        }
+      }
+      newS += newMatchChunk;
+      s = s.substr(matchEndIndex);
+
+      replacementCount++;
+      if (n !== null && replacementCount >= n) {
+        return false; // break
+      }
+      return true;
+    };
+
+    var match = get_balanced_match(s, pattern);
+    if (match !== null) {
+      var startChar = pattern[2];
+      var endChar = pattern[3];
+      // escape start and end char if they are special regex chars
+      var specialChars = ["[","]","(",")","{","}"]; // in this context it's not necessarily usefull to add others characters 
+      if (specialChars.indexOf(startChar) !== -1) {
+        startChar = "\\"+startChar;
+      }
+      if (specialChars.indexOf(endChar) !== -1) {
+        endChar = "\\"+endChar;
+      }
+
+      do {
+        match = get_balanced_match(s, pattern);
+        if (match === null) {
+          break;
+        }
+        regex = match.replace(new RegExp(startChar, "g"), startChar);
+        regex = regex.replace(new RegExp(endChar, "g"), endChar);
+        regex = new RegExp(regex);
+      } while (processMatch(match));
+    } else {
+      var matches = s.match(new RegExp(pattern , 'g'));
+
+      for (var i in matches) {
+        if (!processMatch(matches[i])) {
+          break;
+        }
+      }
+    }    
+
+    newS += s;
+    return [newS, replacementCount];
   },
   "len": function (s) {
     return [check_string(s).length];
@@ -1086,13 +1548,35 @@ lua_libs["string"] = {
   "lower": function (s) {
     return [check_string(s).toLowerCase()];
   },
-  "match": function (s) {
-    // TODO
-    not_supported();
+  "match": function (s, pattern, index) {
+    s = check_string(s);
+    index = lua_tonumber(index);
+    if (index === null) {
+      index = 1;
+    } else if (index < 0) {
+      index = s.length + index;
+    }
+    index--;
+    s = s.substr(index);
+
+    pattern = lua_pattern_to_regex(pattern);
+    var match = get_balanced_match(s, pattern);
+    if (match === null) {
+      var matches = s.match(pattern);
+      if (matches !== null) {
+        if (matches[1] != null) {
+          match = matches[1];
+        } else {
+          match =  matches[0];
+        }
+      }
+    }
+    return [match];
   },
   "rep": function (s, n) {
     s = check_string(s);
-    if (typeof n == "number") {
+    n = lua_tonumber(n);
+    if (n !== null) {
       var result = [];
       while (n-- > 0) {
         result.push(s);
@@ -1106,6 +1590,8 @@ lua_libs["string"] = {
     return [check_string(s).split("").reverse().join("")];
   },
   "sub": function (s, i, j) {
+    i = lua_tonumber(i);
+    j = lua_tonumber(j);
     // thanks to ghoulsblade for pointing out the bugs in string.sub
     i = i < 0 ? (i + s.length + 1) : (i >= 0 ? i : 0)
     if (j == null) {
