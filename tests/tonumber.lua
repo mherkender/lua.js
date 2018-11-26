@@ -1,0 +1,31 @@
+assert(tonumber(-5) == -5)
+assert(tonumber(-1.5) == -1.5)
+assert(tonumber(-0) == 0)
+assert(tonumber(0) == 0)
+assert(tonumber(5.46) == 5.46)
+assert(tonumber(21) == 21)
+
+assert(tonumber("-5") == -5)
+assert(tonumber("-1.5") == -1.5)
+assert(tonumber(" -0") == 0)
+assert(tonumber("0") == 0)
+assert(tonumber("5.46  ") == 5.46)
+assert(tonumber("   21  ") == 21)
+
+assert(tonumber("0xA") == 10)
+assert(tonumber("0XFF ") == 255)
+assert(tonumber("  0xB6F   ") == 2927)
+assert(tonumber(" 0XC2F3") == 49907)
+assert(tonumber("0x14BA2F") == 1358383)
+
+
+assert(tonumber("0XCZ2F3") == nil)
+assert(tonumber("456 0XC2F3") == nil)
+assert(tonumber("0x14BKA2F") == nil)
+assert(tonumber({}) == nil)
+assert(tonumber(false) == nil)
+assert(tonumber(nil) == nil)
+
+assert(tonumber("foo") == nil)
+assert(tonumber("789 foo") == nil)
+assert(tonumber("foo789") == nil)
